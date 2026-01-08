@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
-            echo "Install Claude skills and agents to local ~/.claude/ directory"
+            echo "Install Claude skills and commands to local ~/.claude/ directory"
             echo ""
             echo "OPTIONS:"
             echo "  --force, -f    Overwrite existing files without asking"
@@ -108,17 +108,17 @@ if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
     echo ""
 fi
 
-# Install agents
-if [[ -d "$REPO_ROOT/.claude/agents" ]]; then
-    echo "Installing agents..."
-    for agent_file in "$REPO_ROOT/.claude/agents"/*.md; do
-        if [[ -f "$agent_file" ]]; then
-            agent_name=$(basename "$agent_file")
-            src="$agent_file"
-            dest="$CLAUDE_DIR/agents/$agent_name"
-            # Create agents directory if it doesn't exist
-            mkdir -p "$CLAUDE_DIR/agents"
-            copy_with_confirmation "$src" "$dest" "agent: ${agent_name%.md}"
+# Install commands
+if [[ -d "$REPO_ROOT/.claude/commands" ]]; then
+    echo "Installing commands..."
+    for command_file in "$REPO_ROOT/.claude/commands"/*.md; do
+        if [[ -f "$command_file" ]]; then
+            command_name=$(basename "$command_file")
+            src="$command_file"
+            dest="$CLAUDE_DIR/commands/$command_name"
+            # Create commands directory if it doesn't exist
+            mkdir -p "$CLAUDE_DIR/commands"
+            copy_with_confirmation "$src" "$dest" "command: ${command_name%.md}"
         fi
     done
     echo ""
@@ -137,4 +137,4 @@ echo "Files installed to: $CLAUDE_DIR"
 echo ""
 echo "To verify installation:"
 echo "  ls ~/.claude/skills/"
-echo "  ls ~/.claude/agents/"
+echo "  ls ~/.claude/commands/"

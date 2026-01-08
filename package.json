@@ -1,7 +1,7 @@
 {
   "name": "@walletconnect/claude-files",
   "version": "1.0.0",
-  "description": "Shared Claude Code configuration files for WalletConnect organization",
+  "description": "Shared Claude Code skills and commands for WalletConnect organization",
   "private": true,
   "scripts": {
     "validate": "./scripts/validate.sh",
