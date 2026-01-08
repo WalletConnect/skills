@@ -1,6 +1,6 @@
 # WalletConnect Claude Files
 
-Centralized repository for shared Claude Code skills and subagents used across WalletConnect projects.
+Centralized repository for shared Claude Code configuration files used across WalletConnect projects.
 
 ## Quick Start
 
@@ -16,8 +16,8 @@ cd claude-files
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom commands that extend Claude's capabilities
-- **Agents**: Specialized subagents for specific tasks
+- **Skills**: Custom slash commands that extend Claude's capabilities (e.g., `/worktree`)
+- **Commands**: Prompt templates and workflows for common development tasks
 
 All files are organized to mirror your local `~/.claude/` directory structure for easy syncing.
 
@@ -35,7 +35,7 @@ All files are organized to mirror your local `~/.claude/` directory structure fo
 git clone git@github.com:WalletConnect/claude-files.git
 cd claude-files
 
-# Install all skills and agents
+# Install all skills and commands
 ./scripts/install.sh
 
 # Or force overwrite existing files
@@ -46,7 +46,7 @@ cd claude-files
 
 ```bash
 ls ~/.claude/skills/
-ls ~/.claude/agents/
+ls ~/.claude/commands/
 ```
 
 ## Available Skills
@@ -73,27 +73,35 @@ Creates a new git worktree in a sibling directory with proper branch naming foll
 # Creates worktree at ../repo-name-feat-alerts
 ```
 
-## Available Agents
+## Available Commands
 
-| Agent | Description | Model |
-|-------|-------------|-------|
-| `github-comment-deleter` | Delete comments from GitHub PRs/issues (use only when explicitly requested) | haiku |
+Commands are prompt templates that help with common development workflows. They are simple markdown files in `.claude/commands/` that Claude can use.
 
-### Agent Details
-
-#### github-comment-deleter
-Safely deletes comments from GitHub pull requests and issues using the GitHub CLI. Only invoked when user explicitly requests comment deletion.
-
-**Features:**
-- Handles both regular PR comments and inline review comments
-- Shows deletion summary before proceeding
-- Graceful error handling
-- Progress reporting for large comment counts
-
-**Use Cases:**
-- Cleaning up PR comment threads
-- Removing outdated review comments
-- Bulk comment management
+| Command | Description |
+|---------|-------------|
+| `analyze-dependencies` | Analyze and audit project dependencies |
+| `api-documenter` | Generate API documentation |
+| `commit-and-push` | Stage, commit, and push changes with proper messaging |
+| `debug-issue` | Systematic debugging workflow |
+| `dev-diary` | Create developer diary entries |
+| `explore-module` | Explore and understand code modules |
+| `fix` | Fix GitHub issues in new worktree and submit PR |
+| `gather-tech-docs` | Gather tech stack documentation |
+| `performance-check` | Check and optimize performance |
+| `post-init-onboarding` | Post-initialization onboarding tasks |
+| `pre-deploy-check` | Pre-deployment checklist |
+| `pre-review-check` | Pre-review quality checklist |
+| `refactor-assistant` | Guided refactoring workflow |
+| `respond` | Respond to PR review feedback |
+| `review` | Review pull requests thoroughly |
+| `security-audit` | Security audit workflow |
+| `start-feature` | Start new feature development |
+| `summarize_prs` | Analyze and summarize open PRs |
+| `tdd` | Test-driven development workflow |
+| `tech-debt-hunt` | Technical debt assessment |
+| `understand-codebase` | Deep dive into codebase understanding |
+| `update-docs` | Update project documentation |
+| `visual-test` | Visual testing with Playwright |
 
 ## Syncing Updates
 
@@ -107,7 +115,7 @@ git pull
 
 ### Push Local Changes to Repository (Contributors)
 
-If you've created or modified skills/agents locally and want to share them:
+If you've created or modified skills/commands locally and want to share them:
 
 ```bash
 cd claude-files
@@ -171,33 +179,34 @@ git push
    git push
    ```
 
-### Adding a New Agent
+### Adding a New Command
 
-1. Create agent file:
+1. Create command file:
    ```bash
-   touch .claude/agents/<agent-name>.md
+   touch .claude/commands/<command-name>.md
    ```
 
-2. Add frontmatter and instructions:
+2. Add content (optional frontmatter):
    ```markdown
    ---
-   name: agent-name
-   description: When to use this agent with examples
-   model: haiku
+   description: Brief description of the command
+   argument-hint: [optional arguments]
    ---
 
-   Agent instructions and behavior...
+   # Command Title
+
+   Instructions and workflow for Claude to follow...
    ```
 
-3. Validate:
+3. Test locally:
    ```bash
-   ./scripts/validate.sh
+   # Commands are automatically available once in ~/.claude/commands/
    ```
 
 4. Commit and push:
    ```bash
-   git add .claude/agents/<agent-name>.md
-   git commit -m "feat: add <agent-name> agent"
+   git add .claude/commands/<command-name>.md
+   git commit -m "feat: add <command-name> command"
    git push
    ```
 
@@ -212,14 +221,15 @@ user-invocable: true          # Optional: If user can call directly (default: tr
 ---
 ```
 
-**Agents** (`.claude/agents/<name>.md`):
+**Commands** (`.claude/commands/<name>.md`):
 ```yaml
 ---
-name: agent-name              # Required: Agent identifier
-description: When to use      # Required: When to use with examples
-model: haiku                  # Optional: haiku|sonnet|opus (default: sonnet)
+description: Brief description # Optional: Command description
+argument-hint: [args]         # Optional: Hint for arguments
 ---
 ```
+
+Note: Commands have much simpler frontmatter requirements than skills. Many commands work fine without any frontmatter.
 
 ### Commit Conventions
 
@@ -248,7 +258,7 @@ Checks:
 - File structure follows conventions
 
 ### install.sh
-Copies all skills and agents to your local `~/.claude/` directory.
+Copies all skills and commands to your local `~/.claude/` directory.
 
 ```bash
 # Interactive installation
@@ -301,8 +311,11 @@ claude-files/
 │   ├── skills/              # All team skills
 │   │   └── worktree/
 │   │       └── SKILL.md
-│   └── agents/              # All team agents
-│       └── github-comment-deleter.md
+│   └── commands/            # All team commands
+│       ├── pre-review-check.md
+│       ├── commit-and-push.md
+│       ├── respond.md
+│       └── ... (23 total)
 ├── scripts/
 │   ├── install.sh           # Install files to local .claude/
 │   ├── sync.sh              # Sync between local and repo
@@ -319,7 +332,7 @@ claude-files/
 1. Verify installation:
    ```bash
    ls ~/.claude/skills/
-   ls ~/.claude/agents/
+   ls ~/.claude/commands/
    ```
 
 2. Check frontmatter validation:
@@ -354,7 +367,7 @@ If you have conflicting changes:
 2. Backup local changes:
    ```bash
    cp -r ~/.claude/skills ~/claude-backup/skills
-   cp -r ~/.claude/agents ~/claude-backup/agents
+   cp -r ~/.claude/commands ~/claude-backup/commands
    ```
 
 3. Resolve conflicts manually and re-run sync
@@ -374,9 +387,9 @@ chmod +x scripts/*.sh
 
 - Use conventional commit format for all commits
 - Skills go in their own subdirectories with `SKILL.md`
-- Agents are flat files in `agents/` directory
+- Commands are flat markdown files in `commands/` directory
 - Validate before committing (`./scripts/validate.sh`)
-- Document all skills/agents clearly
+- Document all skills/commands clearly
 - Test locally before pushing
 
 ## npm Scripts

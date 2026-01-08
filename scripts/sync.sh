@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
-            echo "Sync Claude skills and agents between repository and local ~/.claude/"
+            echo "Sync Claude skills and commands between repository and local ~/.claude/"
             echo ""
             echo "OPTIONS:"
             echo "  --pull         Only sync from repository to local"
@@ -99,8 +99,8 @@ if [[ "$MODE" == "pull" ]] || [[ "$MODE" == "bidirectional" ]]; then
         echo ""
     fi
 
-    if [[ -d "$REPO_ROOT/.claude/agents" ]]; then
-        sync_dir "$REPO_ROOT/.claude/agents" "$CLAUDE_DIR/agents" "agents"
+    if [[ -d "$REPO_ROOT/.claude/commands" ]]; then
+        sync_dir "$REPO_ROOT/.claude/commands" "$CLAUDE_DIR/commands" "commands"
         echo ""
     fi
 fi
@@ -117,8 +117,8 @@ if [[ "$MODE" == "push" ]] || [[ "$MODE" == "bidirectional" ]]; then
         echo ""
     fi
 
-    if [[ -d "$CLAUDE_DIR/agents" ]]; then
-        sync_dir "$CLAUDE_DIR/agents" "$REPO_ROOT/.claude/agents" "agents"
+    if [[ -d "$CLAUDE_DIR/commands" ]]; then
+        sync_dir "$CLAUDE_DIR/commands" "$REPO_ROOT/.claude/commands" "commands"
         echo ""
     fi
 
