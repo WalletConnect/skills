@@ -1,0 +1,38 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude runtime files (don't commit these)
+.claude/debug/
+.claude/file-history/
+.claude/history.jsonl
+.claude/plans/
+.claude/session-env/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/stats-cache.json
+.claude/downloads/
+.claude/ide/
+.claude/telemetry/
+.claude/.update.lock
+
+# Only commit skills and agents
+!.claude/skills/
+!.claude/agents/
+
+# Node
+node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# Test files
+test/
+*.test.js
+*.test.sh

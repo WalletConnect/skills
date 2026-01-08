@@ -1,0 +1,24 @@
+{
+  "name": "@walletconnect/claude-files",
+  "version": "1.0.0",
+  "description": "Shared Claude Code configuration files for WalletConnect organization",
+  "private": true,
+  "scripts": {
+    "validate": "./scripts/validate.sh",
+    "install-files": "./scripts/install.sh",
+    "sync": "./scripts/sync.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:WalletConnect/claude-files.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skills",
+    "agents",
+    "walletconnect"
+  ],
+  "author": "WalletConnect",
+  "license": "UNLICENSED"
+}
