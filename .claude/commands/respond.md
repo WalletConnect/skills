@@ -1,11 +1,17 @@
 ---
 description: Respond to PR review feedback and push fixes
-argument-hint: [pr-number]
+argument-hint: [pr-number] [comment-filter]
 ---
 
 # Respond to PR Review Feedback
 
 You are addressing review feedback on a PR. If a PR number is provided, use #$1. Otherwise, detect the current branch and find its PR.
+
+**Comment Filter**: If a second argument is provided ($ARGUMENTS after the PR number, or the entire $ARGUMENTS if no PR number), use it to filter which comments to address. This can be:
+- A keyword or phrase to match (e.g., "naming", "tests", "security")
+- A reviewer's username to only address their comments
+- "unresolved" to only address unresolved threads
+- A specific description of what to focus on (e.g., "only the type errors", "ignore style suggestions")
 
 ## Step 1: Identify the PR
 
@@ -33,12 +39,16 @@ gh api repos/$REPO/pulls/$PR_NUMBER/comments
 
 ## Step 3: Analyze Feedback
 
-Categorize each piece of feedback:
+First, if a comment filter was provided, identify which comments match the filter criteria. Only proceed with those comments.
+
+**If filter provided**: List all comments, then clearly identify which ones match the filter and will be addressed vs which will be skipped.
+
+Categorize each piece of feedback (within the filter scope):
 
 1. **Must Fix**: Blocking issues, bugs, security concerns
 2. **Should Fix**: Valid improvements, better practices
 3. **Consider**: Suggestions, style preferences (discuss if disagreeing)
-4. **Won't Fix**: Explain reasoning if pushing back
+4. **Skipped**: Comments outside the filter scope (acknowledge but don't address)
 
 ## Step 4: Address Feedback
 
@@ -106,5 +116,6 @@ Provide:
 
 1. List of changes made
 2. Any feedback you pushed back on (with reasoning)
-3. Outstanding items (if any)
-4. Current PR status
+3. Comments skipped due to filter (if filter was applied)
+4. Outstanding items (if any)
+5. Current PR status
