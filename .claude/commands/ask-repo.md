@@ -5,12 +5,12 @@ Spawn a sub-agent to explore another repository without polluting the current co
 ## Usage
 
 ```
-/repo <alias> "<prompt>"
+/ask-repo <alias> "<prompt>"
 ```
 
 Examples:
-- `/repo pay-core "how is authentication implemented?"`
-- `/repo data-lake "find the Glue table definitions"`
+- `/ask-repo pay-core "how is authentication implemented?"`
+- `/ask-repo data-lake "find the Glue table definitions"`
 
 ## Arguments
 
