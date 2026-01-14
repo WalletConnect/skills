@@ -75,7 +75,7 @@ copy_with_confirmation() {
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${YELLOW}Skipped${NC}: $type"
-            ((SKIPPED++))
+            ((++SKIPPED))
             return
         fi
     fi
@@ -91,7 +91,7 @@ copy_with_confirmation() {
     fi
 
     echo -e "${GREEN}✓${NC} Installed: $type"
-    ((INSTALLED++))
+    ((++INSTALLED))
 }
 
 # Install skills
@@ -135,6 +135,9 @@ fi
 echo ""
 echo "Files installed to: $CLAUDE_DIR"
 echo ""
-echo "To verify installation:"
-echo "  ls ~/.claude/skills/"
-echo "  ls ~/.claude/commands/"
+
+# Verify installation
+echo "Verifying installation..."
+INSTALLED_SKILLS=$(ls -1 "$CLAUDE_DIR/skills" 2>/dev/null | wc -l | tr -d ' ')
+INSTALLED_COMMANDS=$(ls -1 "$CLAUDE_DIR/commands" 2>/dev/null | wc -l | tr -d ' ')
+echo -e "${GREEN}✓${NC} $INSTALLED_SKILLS skill(s) and $INSTALLED_COMMANDS command(s) installed"
