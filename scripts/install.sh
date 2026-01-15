@@ -63,6 +63,69 @@ echo ""
 INSTALLED=0
 SKIPPED=0
 
+# Markers for CLAUDE.md append-only mode
+CLAUDE_MD_BEGIN="<!-- BEGIN walletconnect/claude-files -->"
+CLAUDE_MD_END="<!-- END walletconnect/claude-files -->"
+
+# Function to append CLAUDE.md content without overwriting user content
+append_claude_md() {
+    local src="$1"
+    local dest="$2"
+
+    local repo_content
+    repo_content=$(cat "$src")
+    local marked_content="${CLAUDE_MD_BEGIN}
+${repo_content}
+${CLAUDE_MD_END}"
+
+    if [[ ! -f "$dest" ]]; then
+        # Create new file with just the marked content
+        echo "$marked_content" > "$dest"
+        echo -e "${GREEN}✓${NC} Created: CLAUDE.md"
+        ((++INSTALLED))
+    elif grep -q "$CLAUDE_MD_BEGIN" "$dest"; then
+        # Replace existing marked section using line numbers (portable)
+        local begin_line end_line total_lines before after
+        begin_line=$(grep -n "$CLAUDE_MD_BEGIN" "$dest" | head -1 | cut -d: -f1)
+        end_line=$(grep -n "$CLAUDE_MD_END" "$dest" | tail -1 | cut -d: -f1)
+        total_lines=$(wc -l < "$dest" | tr -d ' ')
+
+        # Get content before the marker (if any)
+        if [[ "$begin_line" -gt 1 ]]; then
+            before=$(head -n $((begin_line - 1)) "$dest")
+        else
+            before=""
+        fi
+
+        # Get content after the marker (if any)
+        if [[ "$end_line" -lt "$total_lines" ]]; then
+            after=$(tail -n $((total_lines - end_line)) "$dest")
+        else
+            after=""
+        fi
+
+        {
+            if [[ -n "$before" ]]; then
+                echo "$before"
+            fi
+            echo "$marked_content"
+            if [[ -n "$after" ]]; then
+                echo "$after"
+            fi
+        } > "$dest"
+        echo -e "${GREEN}✓${NC} Updated: CLAUDE.md"
+        ((++INSTALLED))
+    else
+        # Append marked content to existing file
+        {
+            echo ""
+            echo "$marked_content"
+        } >> "$dest"
+        echo -e "${GREEN}✓${NC} Appended: CLAUDE.md"
+        ((++INSTALLED))
+    fi
+}
+
 # Function to copy with confirmation
 copy_with_confirmation() {
     local src="$1"
@@ -121,6 +184,13 @@ if [[ -d "$REPO_ROOT/.claude/commands" ]]; then
             copy_with_confirmation "$src" "$dest" "command: ${command_name%.md}"
         fi
     done
+    echo ""
+fi
+
+# Install CLAUDE.md (append-only)
+if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
+    echo "Installing CLAUDE.md..."
+    append_claude_md "$REPO_ROOT/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
     echo ""
 fi
 
