@@ -54,8 +54,26 @@ ls ~/.claude/commands/
 | Skill | Description | Usage |
 |-------|-------------|-------|
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
+| `wc-frontend-skill` | Initialize and develop frontend apps using WalletConnect UI registry with consistent branding | `/wc-frontend-skill` |
 
 ### Skill Details
+
+#### wc-frontend-skill
+Sets up and develops frontend applications using the WalletConnect Shadcn UI registry with consistent patterns across all WalletConnect projects.
+
+**Features:**
+- Installs UI components from the `@walletconnect` Shadcn registry
+- Configures Tailwind CSS v3 with design tokens and theme variables
+- Sets up KHTeka fonts with proper Next.js configuration
+- Implements dark/light mode theming with next-themes
+- Creates layouts and pages matching WalletConnect design patterns
+
+**Example:**
+```bash
+/wc-frontend-skill
+# Provide a screenshot or description of the UI you want to build
+# Claude will set up the project and implement the UI using WalletConnect components
+```
 
 #### worktree
 Creates a new git worktree in a sibling directory with proper branch naming following conventional commit conventions. Useful when you need to work on multiple branches simultaneously.
@@ -309,6 +327,11 @@ Features:
 claude-files/
 ├── .claude/
 │   ├── skills/              # All team skills
+│   │   ├── wc-frontend-skill/
+│   │   │   ├── SKILL.md
+│   │   │   ├── REFERENCE.md
+│   │   │   ├── COMPONENTS.md
+│   │   │   └── LAYOUTS.md
 │   │   └── worktree/
 │   │       └── SKILL.md
 │   └── commands/            # All team commands
