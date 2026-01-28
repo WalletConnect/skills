@@ -62,6 +62,43 @@ echo ""
 
 INSTALLED=0
 SKIPPED=0
+UNCHANGED=0
+
+# Function to check if files/directories are identical
+files_identical() {
+    local src="$1"
+    local dest="$2"
+
+    if [[ -d "$src" ]]; then
+        # For directories, compare recursively
+        diff -rq "$src" "$dest" &>/dev/null
+    else
+        # For files, compare content
+        diff -q "$src" "$dest" &>/dev/null
+    fi
+}
+
+# Function to show brief diff summary
+show_diff_summary() {
+    local src="$1"
+    local dest="$2"
+
+    if [[ -d "$src" ]]; then
+        # For directories, show which files differ
+        local changes=$(diff -rq "$src" "$dest" 2>/dev/null | head -5)
+        local change_count=$(diff -rq "$src" "$dest" 2>/dev/null | wc -l | tr -d ' ')
+        echo -e "  ${BLUE}Changes:${NC}"
+        echo "$changes" | sed 's/^/    /'
+        if [[ $change_count -gt 5 ]]; then
+            echo "    ... and $((change_count - 5)) more"
+        fi
+    else
+        # For files, show line count changes
+        local additions=$(diff "$dest" "$src" 2>/dev/null | grep -c '^>' || true)
+        local deletions=$(diff "$dest" "$src" 2>/dev/null | grep -c '^<' || true)
+        echo -e "  ${BLUE}Changes:${NC} +${additions} -${deletions} lines"
+    fi
+}
 
 # Function to copy with confirmation
 copy_with_confirmation() {
@@ -69,14 +106,24 @@ copy_with_confirmation() {
     local dest="$2"
     local type="$3"
 
-    if [[ -e "$dest" ]] && [[ "$FORCE" != true ]]; then
-        echo -e "${YELLOW}File exists${NC}: $dest"
-        read -p "Overwrite? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}Skipped${NC}: $type"
-            ((++SKIPPED))
+    if [[ -e "$dest" ]]; then
+        # Check if files are identical
+        if files_identical "$src" "$dest"; then
+            echo -e "${BLUE}•${NC} Unchanged: $type"
+            ((++UNCHANGED))
             return
+        fi
+
+        if [[ "$FORCE" != true ]]; then
+            echo -e "${YELLOW}File changed${NC}: $dest"
+            show_diff_summary "$src" "$dest"
+            read -p "Overwrite? (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${YELLOW}Skipped${NC}: $type"
+                ((++SKIPPED))
+                return
+            fi
         fi
     fi
 
@@ -128,9 +175,12 @@ fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${GREEN}✓${NC} Installation complete!"
 echo ""
-echo "Installed: $INSTALLED file(s)"
+echo "Installed:  $INSTALLED file(s)"
+if [[ $UNCHANGED -gt 0 ]]; then
+    echo "Unchanged:  $UNCHANGED file(s)"
+fi
 if [[ $SKIPPED -gt 0 ]]; then
-    echo "Skipped:   $SKIPPED file(s)"
+    echo "Skipped:    $SKIPPED file(s)"
 fi
 echo ""
 echo "Files installed to: $CLAUDE_DIR"
