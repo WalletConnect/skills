@@ -16,7 +16,7 @@ Use the provided user guidance to steer the review and focus on specific code pa
 
 1. First, determine what to review based on the rules above
 2. Check if the changes include AWS infrastructure files:
-   - Terraform files (`*.tf`)
+   - Terraform files (`*.tf`) containing AWS patterns (`provider "aws"`, `aws_` resources, or `hashicorp/aws`)
    - CDK files (TypeScript files containing `aws-cdk`, `@aws-cdk`, `cdk.Stack`, `cdk.App`, or `Construct` patterns)
 3. Launch parallel Task agents:
    - THREE agents with `subagent_type: general-purpose`, each instructed to:
