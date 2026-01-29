@@ -69,3 +69,7 @@ The `validate.sh` script checks:
 - Skill directory names match skill names
 
 Always run `./scripts/validate.sh` before committing changes to `.claude/`.
+
+## README Maintenance
+
+When adding, removing, or meaningfully changing any skill, command, agent, or script, you MUST update `README.md` to reflect the change. This includes updating the tables of available skills/commands and any relevant documentation sections.
