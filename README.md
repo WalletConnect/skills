@@ -16,8 +16,8 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (e.g., `/worktree`)
-- **Commands**: Prompt templates and workflows for common development tasks
+- **Skills**: Custom slash commands that extend Claude's capabilities (13 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, and more)
+- **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
 
@@ -53,16 +53,111 @@ ls ~/.claude/commands/
 
 | Skill | Description | Usage |
 |-------|-------------|-------|
-| `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
-| `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
-| `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
+| `agent-creator` | Guide for creating custom Claude Code subagents with custom prompts and tools | Use when creating/updating agents |
+| `aws-limits` | Reviews infrastructure code for AWS service quota violations | Use when reviewing Terraform/CloudFormation/CDK/Pulumi |
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
-| `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
+| `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
+| `github-dependabot-report` | Generates Dependabot security alerts report for WalletConnect GitHub orgs, grouped by team | `/github-dependabot-report` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
+| `linear-cli` | Manages Linear issues via CLI - view, start, create, update issues and PRs | `/linear` or when managing Linear issues |
+| `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
 | `repo-ai-setup` | Set up AI agent docs (AGENTS.md), CLAUDE.md symlink, and auto-review workflow | `/repo-ai-setup` |
+| `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
+| `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
+| `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
+
+#### agent-creator
+Guides you through creating custom Claude Code subagents as Markdown files with YAML frontmatter. Helps define agent names, descriptions, tool restrictions, permissions, and system prompts for specialized workflows.
+
+**Features:**
+- Agent file structure and frontmatter options
+- Tool restriction patterns
+- Permission modes and hooks
+- Read-only vs read-write agent examples
+
+#### aws-limits
+Reviews infrastructure code for AWS service quota violations before they cause production issues. Checks against known hard and soft limits across Lambda, API Gateway, S3, DynamoDB, Step Functions, Load Balancing, and more.
+
+**Features:**
+- Scans Terraform, CloudFormation, CDK, Pulumi files
+- Flags violations with severity levels
+- Links to AWS documentation
+- Suggests mitigations
+
+#### code-review
+Reviews code changes using parallel subagents to analyze bugs/logic, security/auth, and patterns/structure. Automatically detects AWS infrastructure files and runs service quota checks.
+
+**Features:**
+- Reviews uncommitted changes by default, or last commit, or PR diffs
+- Parallel analysis by 3-4 specialized reviewers
+- Severity-ranked output (Critical > High > Medium > Low)
+- AWS limits review for infrastructure code
+
+**Example:**
+```bash
+/code-review                    # Review uncommitted changes
+/code-review focus on auth      # Review with specific guidance
+/code-review #123               # Review a PR
+```
+
+#### code-simplifier
+Analyzes recently modified code and applies refinements for clarity, consistency, and maintainability while preserving exact functionality.
+
+**Features:**
+- Preserves all original behavior
+- Applies project-specific conventions
+- Early returns, dead code removal, constant extraction
+- Balance between simplicity and clarity
+
+#### command-creator
+Guides you through creating custom slash commands as Markdown files with optional frontmatter. Commands can use arguments, execute bash, reference files, and define tool permissions.
+
+**Features:**
+- Basic command structure
+- Frontmatter options (description, allowed-tools, model)
+- Arguments and bash execution
+- File references and namespacing
+
+#### github-dependabot-report
+Generates a Dependabot security alerts report for walletconnect, reown-com, and walletconnectfoundation GitHub orgs. Groups alerts by team ownership (GitHub topics). Useful for reviewing security posture, preparing for security reviews, or tracking vulnerability remediation.
+
+**Features:**
+- Scans multiple GitHub organizations
+- Groups vulnerabilities by team/topic ownership
+- Severity-ranked findings
+- Tracks remediation status
+
+#### license-compliance
+Scans project dependencies for license compliance across 9 ecosystems. Classifies licenses as permissive, weak copyleft, or restrictive. Supports monorepos, remote GitHub repos, and org-wide scanning with tracker-based resume.
+
+**Ecosystems Supported:**
+- JS/TS (pnpm/npm/yarn)
+- Rust (cargo)
+- Python (pip/poetry/uv/pipenv)
+- Swift (SPM)
+- Kotlin (Gradle)
+- Dart (pub)
+- Go (modules)
+- C# (NuGet)
+- Solidity (Foundry)
+
+**Example:**
+```bash
+/license-compliance                        # Scan current project
+/license-compliance --repo org/repo        # Scan remote repo
+```
+
+#### linear-cli
+Manages Linear issues from the terminal - view current work, start issues, create branches, open PRs, and stay in flow. Integrates with GitHub CLI for PR creation.
+
+**Features:**
+- View and list issues
+- Start issues (creates branch)
+- Create PRs with prefilled data
+- Configuration management
 
 #### operational-readiness
 Comprehensive operational readiness checklist for validating services before production launch. Analyzes codebase for CI/CD configs, infrastructure code, and security patterns, then interactively verifies items that can't be detected from code.
@@ -88,6 +183,24 @@ Comprehensive operational readiness checklist for validating services before pro
 /operational-readiness
 # Prompts for service classification → Analyzes codebase
 # → Asks verification questions → Generates readiness report
+```
+
+#### repo-ai-setup
+Sets up a repository with standardized AI agent documentation and automated PR review infrastructure following the WalletConnect checklist.
+
+**Features:**
+- Detects existing AGENTS.md / CLAUDE.md state and skips completed steps
+- Converts existing CLAUDE.md to agent-agnostic AGENTS.md
+- Runs Claude Code `/init` in a subagent for repos without any agent docs
+- Creates backward-compatible CLAUDE.md → AGENTS.md symlink
+- Sets up Claude auto-review GitHub Action workflow
+- Auto-detects default branch for workflow configuration
+
+**Example:**
+```bash
+/repo-ai-setup                  # Full setup
+/repo-ai-setup just docs        # Only AGENTS.md + symlink
+/repo-ai-setup just workflow    # Only auto-review workflow
 ```
 
 #### security-audit-owasp-top-10
@@ -123,6 +236,15 @@ Performs systematic security audit of codebases against the OWASP Top 10 2025 fr
 # Audits only access control and injection categories
 ```
 
+#### skill-writing
+Produces usable Skill packages optimized for discoverability, correctness, concision, and testability. Follows progressive disclosure patterns and includes validation.
+
+**Features:**
+- Requirements extraction
+- Information architecture design
+- Frontmatter validation
+- Evaluation prompt generation
+
 #### worktree
 Creates a new git worktree in a sibling directory with proper branch naming following conventional commit conventions. Useful when you need to work on multiple branches simultaneously.
 
@@ -139,57 +261,6 @@ Creates a new git worktree in a sibling directory with proper branch naming foll
 # Creates worktree at ../repo-name-feat-alerts
 ```
 
-#### code-review
-Reviews code changes using parallel subagents to analyze bugs/logic, security/auth, and patterns/structure. Automatically detects AWS infrastructure files and runs service quota checks.
-
-**Features:**
-- Reviews uncommitted changes by default, or last commit, or PR diffs
-- Parallel analysis by 3-4 specialized reviewers
-- Severity-ranked output (Critical > High > Medium > Low)
-- AWS limits review for infrastructure code
-
-**Example:**
-```bash
-/code-review                    # Review uncommitted changes
-/code-review focus on auth      # Review with specific guidance
-/code-review #123               # Review a PR
-```
-
-#### code-simplifier
-Analyzes recently modified code and applies refinements for clarity, consistency, and maintainability while preserving exact functionality.
-
-**Features:**
-- Preserves all original behavior
-- Applies project-specific conventions
-- Early returns, dead code removal, constant extraction
-- Balance between simplicity and clarity
-
-#### aws-limits
-Reviews Terraform, CloudFormation, CDK, or Pulumi code for AWS service limit violations that could cause production issues.
-
-**Features:**
-- Checks against known hard and soft limits
-- Severity-ranked findings with AWS documentation links
-- Mitigation suggestions for each violation
-
-#### repo-ai-setup
-Sets up a repository with standardized AI agent documentation and automated PR review infrastructure following the WalletConnect checklist.
-
-**Features:**
-- Detects existing AGENTS.md / CLAUDE.md state and skips completed steps
-- Converts existing CLAUDE.md to agent-agnostic AGENTS.md
-- Runs Claude Code `/init` in a subagent for repos without any agent docs
-- Creates backward-compatible CLAUDE.md → AGENTS.md symlink
-- Sets up Claude auto-review GitHub Action workflow
-- Auto-detects default branch for workflow configuration
-
-**Example:**
-```bash
-/repo-ai-setup                  # Full setup
-/repo-ai-setup just docs        # Only AGENTS.md + symlink
-/repo-ai-setup just workflow    # Only auto-review workflow
-```
-
 ## Available Commands
 
 Commands are prompt templates that help with common development workflows. They are simple markdown files in `.claude/commands/` that Claude can use.
@@ -198,12 +269,14 @@ Commands are prompt templates that help with common development workflows. They 
 |---------|-------------|
 | `analyze-dependencies` | Analyze and audit project dependencies |
 | `api-documenter` | Generate API documentation |
+| `aws-limits` | Review infrastructure code for AWS service quota violations |
 | `commit-and-push` | Stage, commit, and push changes with proper messaging |
 | `debug-issue` | Systematic debugging workflow |
 | `dev-diary` | Create developer diary entries |
 | `explore-module` | Explore and understand code modules |
 | `fix` | Fix GitHub issues in new worktree and submit PR |
 | `gather-tech-docs` | Gather tech stack documentation |
+| `github-assign-team-topics` | Assign team topics to WalletConnect/reown-com repos |
 | `performance-check` | Check and optimize performance |
 | `post-init-onboarding` | Post-initialization onboarding tasks |
 | `pre-deploy-check` | Pre-deployment checklist |
@@ -263,6 +336,8 @@ git push
 ```
 
 ## Contributing
+
+For AI agents: See [AGENTS.md](AGENTS.md) for repository architecture, validation requirements, and maintenance guidelines.
 
 ### Adding a New Skill
 
@@ -425,15 +500,32 @@ Features:
 ```
 skills/                      # Repository root
 ├── skills/                  # All team skills (primary location)
-│   ├── worktree/
-│   │   └── SKILL.md
-│   ├── code-review/
-│   │   └── SKILL.md
-│   ├── code-simplifier/
+│   ├── agent-creator/
 │   │   └── SKILL.md
 │   ├── aws-limits/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
+│   ├── code-review/
+│   │   └── SKILL.md
+│   ├── code-simplifier/
+│   │   └── SKILL.md
+│   ├── command-creator/
+│   │   └── SKILL.md
+│   ├── github-dependabot-report/
+│   │   ├── SKILL.md
+│   │   ├── package.json
+│   │   └── scripts/
+│   ├── license-compliance/
+│   │   ├── SKILL.md
+│   │   ├── config/
+│   │   └── scripts/
+│   ├── linear-cli/
+│   │   └── SKILL.md
+│   ├── operational-readiness/
+│   │   ├── SKILL.md
+│   │   ├── assets/
+│   │   ├── references/
+│   │   └── scripts/
 │   ├── repo-ai-setup/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
@@ -441,14 +533,38 @@ skills/                      # Repository root
 │   │   ├── SKILL.md
 │   │   ├── CATEGORIES.md
 │   │   └── EVALUATIONS.md
-│   └── ...
+│   ├── skill-writing/
+│   │   └── SKILL.md
+│   └── worktree/
+│       └── SKILL.md
 ├── .claude/
 │   ├── skills -> ../skills  # Symlink for backwards compatibility
 │   └── commands/            # All team commands
-│       ├── pre-review-check.md
+│       ├── analyze-dependencies.md
+│       ├── api-documenter.md
+│       ├── aws-limits.md
 │       ├── commit-and-push.md
+│       ├── debug-issue.md
+│       ├── dev-diary.md
+│       ├── explore-module.md
+│       ├── fix.md
+│       ├── gather-tech-docs.md
+│       ├── github-assign-team-topics.md
+│       ├── performance-check.md
+│       ├── post-init-onboarding.md
+│       ├── pre-deploy-check.md
+│       ├── pre-review-check.md
+│       ├── refactor-assistant.md
 │       ├── respond.md
-│       └── ...
+│       ├── review.md
+│       ├── security-audit.md
+│       ├── start-feature.md
+│       ├── summarize_prs.md
+│       ├── tdd.md
+│       ├── tech-debt-hunt.md
+│       ├── understand-codebase.md
+│       ├── update-docs.md
+│       └── visual-test.md    # (25 total)
 ├── scripts/
 │   ├── install.sh           # Install files to local .claude/
 │   ├── sync.sh              # Sync between local and repo
