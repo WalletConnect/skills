@@ -126,7 +126,7 @@ if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
         else
             ((ERRORS += $?))
         fi
-    done < <(find "$REPO_ROOT/.claude/skills" -name "SKILL.md" -print0)
+    done < <(find -L "$REPO_ROOT/.claude/skills" -name "SKILL.md" -print0)
 fi
 
 if [[ $skill_count -eq 0 ]]; then
