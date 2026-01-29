@@ -1,5 +1,5 @@
 {
-  "name": "@walletconnect/claude-files",
+  "name": "@walletconnect/skills",
   "version": "1.0.0",
   "description": "Shared Claude Code skills and commands for WalletConnect organization",
   "private": true,
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WalletConnect/claude-files.git"
+    "url": "git@github.com:WalletConnect/skills.git"
   },
   "keywords": [
     "claude",
