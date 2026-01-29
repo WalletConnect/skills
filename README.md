@@ -19,7 +19,7 @@ This repository contains:
 - **Skills**: Custom slash commands that extend Claude's capabilities (e.g., `/worktree`)
 - **Commands**: Prompt templates and workflows for common development tasks
 
-All files are organized to mirror your local `~/.claude/` directory structure for easy syncing.
+Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
 
 ## Prerequisites
 
@@ -151,7 +151,7 @@ git push
 
 1. Create skill directory:
    ```bash
-   mkdir -p .claude/skills/<skill-name>
+   mkdir -p skills/<skill-name>
    ```
 
 2. Create `SKILL.md` with frontmatter:
@@ -174,7 +174,7 @@ git push
 
 4. Commit and push:
    ```bash
-   git add .claude/skills/<skill-name>/
+   git add skills/<skill-name>/
    git commit -m "feat: add <skill-name> skill"
    git push
    ```
@@ -212,7 +212,7 @@ git push
 
 ### Frontmatter Requirements
 
-**Skills** (`.claude/skills/<name>/SKILL.md`):
+**Skills** (`skills/<name>/SKILL.md`):
 ```yaml
 ---
 name: skill-name              # Required: Skill identifier
@@ -306,16 +306,20 @@ Features:
 ## Directory Structure
 
 ```
-skills/
+skills/                      # Repository root
+├── skills/                  # All team skills (primary location)
+│   ├── worktree/
+│   │   └── SKILL.md
+│   ├── linear-cli/
+│   └── ...
 ├── .claude/
-│   ├── skills/              # All team skills
-│   │   └── worktree/
-│   │       └── SKILL.md
-│   └── commands/            # All team commands
-│       ├── pre-review-check.md
-│       ├── commit-and-push.md
-│       ├── respond.md
-│       └── ... (23 total)
+│   ├── skills -> ../skills  # Symlink for backwards compatibility
+│   ├── commands/            # All team commands
+│   │   ├── pre-review-check.md
+│   │   ├── commit-and-push.md
+│   │   ├── respond.md
+│   │   └── ... (23 total)
+│   └── agents/              # Custom agents
 ├── scripts/
 │   ├── install.sh           # Install files to local .claude/
 │   ├── sync.sh              # Sync between local and repo
