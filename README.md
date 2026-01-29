@@ -1,4 +1,4 @@
-# WalletConnect Claude Files
+# WalletConnect Skills
 
 Centralized repository for shared Claude Code configuration files used across WalletConnect projects.
 
@@ -6,8 +6,8 @@ Centralized repository for shared Claude Code configuration files used across Wa
 
 ```bash
 # Clone repository
-git clone git@github.com:WalletConnect/claude-files.git
-cd claude-files
+git clone git@github.com:WalletConnect/skills.git
+cd skills
 
 # Install to your local .claude directory
 ./scripts/install.sh
@@ -32,8 +32,8 @@ All files are organized to mirror your local `~/.claude/` directory structure fo
 
 ```bash
 # Clone repository
-git clone git@github.com:WalletConnect/claude-files.git
-cd claude-files
+git clone git@github.com:WalletConnect/skills.git
+cd skills
 
 # Install all skills and commands
 ./scripts/install.sh
@@ -108,7 +108,7 @@ Commands are prompt templates that help with common development workflows. They 
 ### Pull Latest Changes from Repository
 
 ```bash
-cd claude-files
+cd skills
 git pull
 ./scripts/sync.sh --pull
 ```
@@ -118,7 +118,7 @@ git pull
 If you've created or modified skills/commands locally and want to share them:
 
 ```bash
-cd claude-files
+cd skills
 
 # Sync from local to repository
 ./scripts/sync.sh --push
@@ -306,7 +306,7 @@ Features:
 ## Directory Structure
 
 ```
-claude-files/
+skills/
 ├── .claude/
 │   ├── skills/              # All team skills
 │   │   └── worktree/
