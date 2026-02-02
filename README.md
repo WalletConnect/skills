@@ -54,6 +54,9 @@ ls ~/.claude/commands/
 | Skill | Description | Usage |
 |-------|-------------|-------|
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
+| `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
+| `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
+| `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
 
 ### Skill Details
 
@@ -72,6 +75,39 @@ Creates a new git worktree in a sibling directory with proper branch naming foll
 # Prompts for commit type → Creates feat/alerts branch
 # Creates worktree at ../repo-name-feat-alerts
 ```
+
+#### code-review
+Reviews code changes using parallel subagents to analyze bugs/logic, security/auth, and patterns/structure. Automatically detects AWS infrastructure files and runs service quota checks.
+
+**Features:**
+- Reviews uncommitted changes by default, or last commit, or PR diffs
+- Parallel analysis by 3-4 specialized reviewers
+- Severity-ranked output (Critical > High > Medium > Low)
+- AWS limits review for infrastructure code
+
+**Example:**
+```bash
+/code-review                    # Review uncommitted changes
+/code-review focus on auth      # Review with specific guidance
+/code-review #123               # Review a PR
+```
+
+#### code-simplifier
+Analyzes recently modified code and applies refinements for clarity, consistency, and maintainability while preserving exact functionality.
+
+**Features:**
+- Preserves all original behavior
+- Applies project-specific conventions
+- Early returns, dead code removal, constant extraction
+- Balance between simplicity and clarity
+
+#### aws-limits
+Reviews Terraform, CloudFormation, CDK, or Pulumi code for AWS service limit violations that could cause production issues.
+
+**Features:**
+- Checks against known hard and soft limits
+- Severity-ranked findings with AWS documentation links
+- Mitigation suggestions for each violation
 
 ## Available Commands
 
@@ -310,16 +346,21 @@ skills/                      # Repository root
 ├── skills/                  # All team skills (primary location)
 │   ├── worktree/
 │   │   └── SKILL.md
-│   ├── linear-cli/
+│   ├── code-review/
+│   │   └── SKILL.md
+│   ├── code-simplifier/
+│   │   └── SKILL.md
+│   ├── aws-limits/
+│   │   ├── SKILL.md
+│   │   └── REFERENCE.md
 │   └── ...
 ├── .claude/
 │   ├── skills -> ../skills  # Symlink for backwards compatibility
-│   ├── commands/            # All team commands
-│   │   ├── pre-review-check.md
-│   │   ├── commit-and-push.md
-│   │   ├── respond.md
-│   │   └── ... (23 total)
-│   └── agents/              # Custom agents
+│   └── commands/            # All team commands
+│       ├── pre-review-check.md
+│       ├── commit-and-push.md
+│       ├── respond.md
+│       └── ...
 ├── scripts/
 │   ├── install.sh           # Install files to local .claude/
 │   ├── sync.sh              # Sync between local and repo
