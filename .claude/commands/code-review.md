@@ -23,6 +23,7 @@ Use the provided user guidance to steer the review and focus on specific code pa
      - Read the full file context (not just diffs) to understand surrounding logic
      - Focus on different aspects: bugs/logic, security/auth, and patterns/structure
      - Follow the detailed review guidelines from the code-review agent
+     - **Use WebSearch to verify claims** about external libraries, frameworks, APIs, or cloud services (e.g., Cloudflare, AWS, database drivers) before recommending changes - documentation and best practices evolve frequently
    - If AWS infrastructure detected: ONE additional agent with `subagent_type: aws-limits` to review AWS service quota violations in the changed infrastructure files
 4. Collect all findings and produce a **consolidated summary**
 5. Rank issues by severity: Critical > High > Medium > Low
