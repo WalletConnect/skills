@@ -16,8 +16,9 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (e.g., `/worktree`)
-- **Commands**: Prompt templates and workflows for common development tasks
+- **Skills**: Custom slash commands that extend Claude's capabilities (7 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness)
+- **Commands**: Prompt templates and workflows for common development tasks (26 commands)
+- **Agents**: Specialized subagents for code review, simplification, and infrastructure validation (3 agents)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
 
@@ -53,10 +54,51 @@ ls ~/.claude/commands/
 
 | Skill | Description | Usage |
 |-------|-------------|-------|
+| `agent-creator` | Guide for creating custom Claude Code subagents with custom prompts and tools | Use when creating/updating agents |
+| `aws-limits` | Reviews infrastructure code for AWS service quota violations | Use when reviewing Terraform/CloudFormation/CDK/Pulumi |
+| `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
+| `linear-cli` | Manages Linear issues via CLI - view, start, create, update issues and PRs | `/linear` or when managing Linear issues |
 | `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
+| `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
+
+#### agent-creator
+Guides you through creating custom Claude Code subagents as Markdown files with YAML frontmatter. Helps define agent names, descriptions, tool restrictions, permissions, and system prompts for specialized workflows.
+
+**Features:**
+- Agent file structure and frontmatter options
+- Tool restriction patterns
+- Permission modes and hooks
+- Read-only vs read-write agent examples
+
+#### aws-limits
+Reviews infrastructure code for AWS service quota violations before they cause production issues. Checks against known hard and soft limits across Lambda, API Gateway, S3, DynamoDB, Step Functions, Load Balancing, and more.
+
+**Features:**
+- Scans Terraform, CloudFormation, CDK, Pulumi files
+- Flags violations with severity levels
+- Links to AWS documentation
+- Suggests mitigations
+
+#### command-creator
+Guides you through creating custom slash commands as Markdown files with optional frontmatter. Commands can use arguments, execute bash, reference files, and define tool permissions.
+
+**Features:**
+- Basic command structure
+- Frontmatter options (description, allowed-tools, model)
+- Arguments and bash execution
+- File references and namespacing
+
+#### linear-cli
+Manages Linear issues from the terminal - view current work, start issues, create branches, open PRs, and stay in flow. Integrates with GitHub CLI for PR creation.
+
+**Features:**
+- View and list issues
+- Start issues (creates branch)
+- Create PRs with prefilled data
+- Configuration management
 
 #### operational-readiness
 Comprehensive operational readiness checklist for validating services before production launch. Analyzes codebase for CI/CD configs, infrastructure code, and security patterns, then interactively verifies items that can't be detected from code.
@@ -84,6 +126,15 @@ Comprehensive operational readiness checklist for validating services before pro
 # → Asks verification questions → Generates readiness report
 ```
 
+#### skill-writing
+Produces usable Skill packages optimized for discoverability, correctness, concision, and testability. Follows progressive disclosure patterns and includes validation.
+
+**Features:**
+- Requirements extraction
+- Information architecture design
+- Frontmatter validation
+- Evaluation prompt generation
+
 #### worktree
 Creates a new git worktree in a sibling directory with proper branch naming following conventional commit conventions. Useful when you need to work on multiple branches simultaneously.
 
@@ -108,12 +159,15 @@ Commands are prompt templates that help with common development workflows. They 
 |---------|-------------|
 | `analyze-dependencies` | Analyze and audit project dependencies |
 | `api-documenter` | Generate API documentation |
+| `aws-limits` | Review infrastructure code for AWS service quota violations |
+| `code-review` | Review code changes using parallel subagents with severity ranking |
 | `commit-and-push` | Stage, commit, and push changes with proper messaging |
 | `debug-issue` | Systematic debugging workflow |
 | `dev-diary` | Create developer diary entries |
 | `explore-module` | Explore and understand code modules |
 | `fix` | Fix GitHub issues in new worktree and submit PR |
 | `gather-tech-docs` | Gather tech stack documentation |
+| `github-assign-team-topics` | Assign team topics to WalletConnect/reown-com repos |
 | `performance-check` | Check and optimize performance |
 | `post-init-onboarding` | Post-initialization onboarding tasks |
 | `pre-deploy-check` | Pre-deployment checklist |
@@ -172,7 +226,21 @@ git push
 ./scripts/sync.sh --dry-run
 ```
 
+## Available Agents
+
+Agents are specialized subagents that can be invoked by Claude Code to handle specific types of tasks. They are defined as markdown files in `.claude/agents/`.
+
+| Agent | Description | Usage |
+|-------|-------------|-------|
+| `aws-limits` | Reviews infrastructure code for AWS service quota violations | Automatically invoked for Terraform/CloudFormation/CDK/Pulumi files |
+| `code-review` | Provides actionable feedback on code changes focusing on bugs and security | Used by code-review command for parallel review |
+| `code-simplifier` | Simplifies and refines code for clarity and maintainability | Can be invoked when code needs simplification |
+
+Agents can be invoked automatically by Claude Code based on their description, or explicitly via commands and skills.
+
 ## Contributing
+
+For AI agents: See [AGENTS.md](AGENTS.md) for repository architecture, validation requirements, and maintenance guidelines.
 
 ### Adding a New Skill
 
@@ -335,18 +403,57 @@ Features:
 ```
 skills/                      # Repository root
 ├── skills/                  # All team skills (primary location)
-│   ├── worktree/
+│   ├── agent-creator/
+│   │   └── SKILL.md
+│   ├── aws-limits/
+│   │   ├── SKILL.md
+│   │   └── REFERENCE.md
+│   ├── command-creator/
 │   │   └── SKILL.md
 │   ├── linear-cli/
-│   └── ...
+│   │   └── SKILL.md
+│   ├── operational-readiness/
+│   │   ├── SKILL.md
+│   │   ├── assets/
+│   │   ├── references/
+│   │   └── scripts/
+│   ├── skill-writing/
+│   │   └── SKILL.md
+│   └── worktree/
+│       └── SKILL.md
 ├── .claude/
 │   ├── skills -> ../skills  # Symlink for backwards compatibility
 │   ├── commands/            # All team commands
-│   │   ├── pre-review-check.md
+│   │   ├── analyze-dependencies.md
+│   │   ├── api-documenter.md
+│   │   ├── aws-limits.md
+│   │   ├── code-review.md
 │   │   ├── commit-and-push.md
+│   │   ├── debug-issue.md
+│   │   ├── dev-diary.md
+│   │   ├── explore-module.md
+│   │   ├── fix.md
+│   │   ├── gather-tech-docs.md
+│   │   ├── github-assign-team-topics.md
+│   │   ├── performance-check.md
+│   │   ├── post-init-onboarding.md
+│   │   ├── pre-deploy-check.md
+│   │   ├── pre-review-check.md
+│   │   ├── refactor-assistant.md
 │   │   ├── respond.md
-│   │   └── ... (23 total)
+│   │   ├── review.md
+│   │   ├── security-audit.md
+│   │   ├── start-feature.md
+│   │   ├── summarize_prs.md
+│   │   ├── tdd.md
+│   │   ├── tech-debt-hunt.md
+│   │   ├── understand-codebase.md
+│   │   ├── update-docs.md
+│   │   └── visual-test.md    # (26 total)
 │   └── agents/              # Custom agents
+│       ├── aws-limits.md
+│       ├── code-review.md
+│       └── code-simplifier.md
 ├── scripts/
 │   ├── install.sh           # Install files to local .claude/
 │   ├── sync.sh              # Sync between local and repo
