@@ -70,50 +70,6 @@ validate_skill() {
     return $errors
 }
 
-# Function to validate an agent file
-validate_agent() {
-    local file="$1"
-    local errors=0
-
-    # Check filename ends with .md
-    if [[ ! "$file" =~ \.md$ ]]; then
-        echo -e "${RED}ERROR${NC} $file: Agent files must have .md extension"
-        ((errors++))
-    fi
-
-    # Extract frontmatter
-    local frontmatter=$(extract_frontmatter "$file")
-
-    if [[ -z "$frontmatter" ]]; then
-        echo -e "${RED}ERROR${NC} $file: No frontmatter found (must start with ---)"
-        ((errors++))
-        return $errors
-    fi
-
-    # Validate required fields
-    local name=$(get_field "$frontmatter" "name")
-    local description=$(get_field "$frontmatter" "description")
-    local model=$(get_field "$frontmatter" "model")
-
-    if [[ -z "$name" ]]; then
-        echo -e "${RED}ERROR${NC} $file: Missing required field 'name' in frontmatter"
-        ((errors++))
-    fi
-
-    if [[ -z "$description" ]]; then
-        echo -e "${RED}ERROR${NC} $file: Missing required field 'description' in frontmatter"
-        ((errors++))
-    fi
-
-    # Validate model field if present
-    if [[ -n "$model" ]] && [[ ! "$model" =~ ^(haiku|sonnet|opus)$ ]]; then
-        echo -e "${RED}ERROR${NC} $file: Invalid model '$model' (must be haiku, sonnet, or opus)"
-        ((errors++))
-    fi
-
-    return $errors
-}
-
 # Validate skills
 echo ""
 echo "Validating skills..."
@@ -133,27 +89,6 @@ if [[ $skill_count -eq 0 ]]; then
     echo -e "${YELLOW}WARNING${NC} No skills found in .claude/skills/"
 else
     echo -e "${GREEN}✓${NC} Validated $skill_count skill(s)"
-fi
-
-# Validate agents
-echo ""
-echo "Validating agents..."
-agent_count=0
-if [[ -d "$REPO_ROOT/.claude/agents" ]]; then
-    while IFS= read -r -d '' file; do
-        ((agent_count++))
-        if validate_agent "$file"; then
-            :
-        else
-            ((ERRORS += $?))
-        fi
-    done < <(find "$REPO_ROOT/.claude/agents" -maxdepth 1 -name "*.md" -print0)
-fi
-
-if [[ $agent_count -eq 0 ]]; then
-    echo -e "${YELLOW}WARNING${NC} No agents found in .claude/agents/"
-else
-    echo -e "${GREEN}✓${NC} Validated $agent_count agent(s)"
 fi
 
 echo ""

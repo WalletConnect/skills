@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Repository Purpose
 
-Centralized repo for shared AI agent configuration (skills, commands, agents) used across WalletConnect projects. Files here mirror `~/.claude/` structure for syncing to local machines.
+Centralized repo for shared AI agent configuration (skills, commands) used across WalletConnect projects. Files here mirror `~/.claude/` structure for syncing to local machines.
 
 ## Commands
 
@@ -35,30 +35,23 @@ npm equivalents: `npm run validate`, `npm run install-files`, `npm run sync`
 │       ├── REFERENCE.md       # Optional: API docs, schemas
 │       ├── WORKFLOWS.md       # Optional: multi-step procedures
 │       └── references/        # Optional: supporting files
-├── commands/         # Simple prompt templates (flat .md files)
-└── agents/           # Subagent definitions (.md files with frontmatter)
+└── commands/         # Simple prompt templates (flat .md files)
 ```
 
-### Skills vs Commands vs Agents
+### Skills vs Commands
 
 - **Skills** (`skills/<name>/SKILL.md`): Complex, multi-file capabilities with structured workflows. Require `name` and `description` frontmatter.
 - **Commands** (`commands/<name>.md`): Simple prompt templates. Frontmatter optional.
-- **Agents** (`agents/<name>.md`): Subagent definitions with tool restrictions and custom prompts. Require `name` and `description` frontmatter; support `tools`, `model`, `permissionMode`.
 
 ### Frontmatter Requirements
 
-Skills and agents require YAML frontmatter:
+Skills require YAML frontmatter:
 ```yaml
 ---
 name: lowercase-hyphen-only
 description: What it does. When to use it.
 ---
 ```
-
-Agents additionally support:
-- `tools`: Comma-separated tool list (default: all)
-- `model`: haiku, sonnet, opus, inherit (default: sonnet)
-- `permissionMode`: default, acceptEdits, dontAsk, bypassPermissions, plan
 
 ## Validation
 
@@ -72,4 +65,4 @@ Always run `./scripts/validate.sh` before committing changes to `.claude/`.
 
 ## README Maintenance
 
-When adding, removing, or meaningfully changing any skill, command, agent, or script, you MUST update `README.md` to reflect the change. This includes updating the tables of available skills/commands and any relevant documentation sections.
+When adding, removing, or meaningfully changing any skill, command, or script, you MUST update `README.md` to reflect the change. This includes updating the tables of available skills/commands and any relevant documentation sections.
