@@ -53,9 +53,36 @@ ls ~/.claude/commands/
 
 | Skill | Description | Usage |
 |-------|-------------|-------|
+| `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
+
+#### operational-readiness
+Comprehensive operational readiness checklist for validating services before production launch. Analyzes codebase for CI/CD configs, infrastructure code, and security patterns, then interactively verifies items that can't be detected from code.
+
+**Features:**
+- Auto-detects tech stack (Rust, Node.js, Terraform, CDK, etc.)
+- Scans for observability, CI/CD, security, and infrastructure patterns
+- Interactive verification for non-detectable items
+- Generates prioritized report with remediation guidance
+- Includes detailed reference docs for all checklist items
+
+**Categories Covered:**
+- Observability (metrics, logging, tracing, alerting)
+- CI/CD & Testing
+- Infrastructure Primitives
+- Security (OWASP Top 10, secrets management, RLS)
+- 3rd Party & Service Dependencies
+- Data Retention & Privacy (GDPR)
+- Efficiency & Frugality
+
+**Example:**
+```bash
+/operational-readiness
+# Prompts for service classification → Analyzes codebase
+# → Asks verification questions → Generates readiness report
+```
 
 #### worktree
 Creates a new git worktree in a sibling directory with proper branch naming following conventional commit conventions. Useful when you need to work on multiple branches simultaneously.
