@@ -141,10 +141,10 @@ const logger = pino({
 logger.info({ userId, action: 'login' }, 'User login attempt');
 ```
 
-**Log retention:** Minimum 1 year for SOC 2 Type 2 compliance. Configure in CloudWatch Logs:
+**Log retention:** Minimum 1 year specifically for audit/security event logs (auth attempts, authorization decisions, admin actions, data access, configuration changes) per SOC 2 Type 2 compliance. General application logs and error tracking (e.g. Sentry) do not require 1-year retention. Configure audit log groups in CloudWatch Logs:
 ```hcl
-resource "aws_cloudwatch_log_group" "service_logs" {
-  name              = "/ecs/${var.service_name}"
+resource "aws_cloudwatch_log_group" "audit_logs" {
+  name              = "/ecs/${var.service_name}/audit"
   retention_in_days = 365
 }
 ```
