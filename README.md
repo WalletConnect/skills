@@ -54,6 +54,7 @@ ls ~/.claude/commands/
 | Skill | Description | Usage |
 |-------|-------------|-------|
 | `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
+| `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
@@ -85,6 +86,39 @@ Comprehensive operational readiness checklist for validating services before pro
 /operational-readiness
 # Prompts for service classification → Analyzes codebase
 # → Asks verification questions → Generates readiness report
+```
+
+#### security-audit-owasp-top-10
+Performs systematic security audit of codebases against the OWASP Top 10 2025 framework. Uses semantic code analysis (not just pattern matching) to detect vulnerabilities with severity-rated findings and remediation guidance.
+
+**Features:**
+- Auto-detects project type and applies relevance filtering
+- Covers all 10 OWASP categories with context-aware checks
+- Semantic analysis with false positive filtering
+- Severity + confidence ratings for each finding
+- Evidence-backed findings with file locations and code snippets
+- Specific remediation guidance per vulnerability
+- Supports partial audits (e.g., "audit A01 and A03 only")
+
+**Categories Covered:**
+- A01: Broken Access Control
+- A02: Security Misconfiguration
+- A03: Supply Chain & Component Failures
+- A04: Cryptographic Failures
+- A05: Injection (SQL, XSS, Command)
+- A06: Insecure Design
+- A07: Authentication & Session Failures
+- A08: Data & Software Integrity Failures
+- A09: Security Logging & Monitoring Failures
+- A10: Exceptional Condition & Error Handling
+
+**Example:**
+```bash
+/security-audit-owasp-top-10
+# Performs full OWASP Top 10 audit → Generates severity-rated report
+
+/security-audit-owasp-top-10 audit A01 and A05 only
+# Audits only access control and injection categories
 ```
 
 #### worktree
@@ -380,6 +414,10 @@ skills/                      # Repository root
 │   ├── aws-limits/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
+│   ├── security-audit-owasp-top-10/
+│   │   ├── SKILL.md
+│   │   ├── CATEGORIES.md
+│   │   └── EVALUATIONS.md
 │   └── ...
 ├── .claude/
 │   ├── skills -> ../skills  # Symlink for backwards compatibility
