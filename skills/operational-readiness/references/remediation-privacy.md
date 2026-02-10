@@ -14,14 +14,15 @@
 |-----------|-----------------|-----------------|-------------|
 | User account data | Account lifetime + 30 days | Soft delete, then hard delete | Contract |
 | Transaction logs | 7 years | Archive to cold storage | Legal requirement |
-| Application logs | 1 year | Auto-expire in CloudWatch | Legitimate interest |
+| Audit/security event logs | 1 year | Auto-expire in CloudWatch | SOC 2 Type 2 compliance |
+| Application logs | 90 days (or per policy) | Auto-expire in CloudWatch | Legitimate interest |
 | Session data | 24 hours | Redis TTL | Contract |
 | Analytics events | 2 years | BigQuery partition expiration | Consent |
 
 ## Implementation
 
 ### CloudWatch Log Retention
-Set via Terraform or console - minimum 1 year for SOC 2.
+Set via Terraform or console. Minimum 1 year for audit/security event logs per SOC 2 Type 2. General application logs can use shorter retention (e.g. 90 days).
 
 ### Database Retention
 - Implement soft delete with `deleted_at` timestamp
@@ -37,7 +38,7 @@ Configure automatic transitions and expirations.
 # CloudWatch log retention
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${var.service_name}"
-  retention_in_days = 365  # 1 year minimum for SOC 2
+  retention_in_days = 365  # 1 year minimum for audit/security logs per SOC 2 Type 2
 }
 
 # S3 lifecycle rules

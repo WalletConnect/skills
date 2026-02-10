@@ -120,10 +120,12 @@ Output format:
 | Canary coverage (if <100 req/min) | P0 | Low traffic | Ask |
 | DB/Queue monitoring (CPU/Disk/Memory) | P1 | Services with DB/Queue | Ask |
 | Logging configured and viewable | P1 | All | Grep for logging config |
-| Log retention policy (min 1 year for SOC2) | P1 | All | Ask |
+| Audit/security log retention (min 1 year for SOC 2 Type 2) | P1 | All | Ask |
 | Distributed tracing (OpenTelemetry/Jaeger) | P2 | Backend services | Grep for otel/tracing |
 | Sentry instrumentation | P1 | Frontend only | Grep for @sentry |
 | status.reown.com integration | P3 | Public-facing | Ask |
+
+> **Note on log retention scope:** The 1-year minimum retention applies specifically to **audit/security event logs** — authentication attempts, authorization decisions, admin actions, data access events, and configuration changes. General application logs and error tracking (e.g. Sentry) are not subject to this requirement. This aligns with SOC 2 Type 2 audit trail requirements.
 
 **Remediation:** See [references/remediation-o11y.md](references/remediation-o11y.md)
 
