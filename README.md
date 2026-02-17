@@ -58,27 +58,11 @@ ls ~/.claude/commands/
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
-| `ai-context-quality` | Audit AI context files for accuracy, coverage, and clarity against the actual codebase | `/ai-context-quality` |
 | `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
+| `context-audit` | Audit AI context files for accuracy, coverage, and clarity against the actual codebase | `/context-audit` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
 
 ### Skill Details
-
-#### ai-context-quality
-Audits AI context files (CLAUDE.md, .cursorrules, SKILL.md, etc.) against the actual codebase. Detects stale references, vague instructions, missing coverage, and structural issues.
-
-**Features:**
-- Discovers all AI context files across tools (Claude Code, Cursor, Copilot, Windsurf)
-- Parallel analysis with 3 specialized subagents (reference validity, coverage, clarity)
-- Scored quality report (Accuracy, Coverage, Clarity → Overall grade A-F)
-- Severity-ranked findings with actionable remediation
-- Handles repos with zero context files (suggests what to create)
-
-**Example:**
-```bash
-/ai-context-quality                          # Full audit of all context files
-/ai-context-quality focus on CLAUDE.md only  # Audit specific file
-```
 
 #### operational-readiness
 Comprehensive operational readiness checklist for validating services before production launch. Analyzes codebase for CI/CD configs, infrastructure code, and security patterns, then interactively verifies items that can't be detected from code.
@@ -187,6 +171,22 @@ Reviews Terraform, CloudFormation, CDK, or Pulumi code for AWS service limit vio
 - Checks against known hard and soft limits
 - Severity-ranked findings with AWS documentation links
 - Mitigation suggestions for each violation
+
+#### context-audit
+Audits AI context files (CLAUDE.md, .cursorrules, SKILL.md, etc.) against the actual codebase. Detects stale references, vague instructions, missing coverage, and structural issues.
+
+**Features:**
+- Discovers all AI context files across tools (Claude Code, Cursor, Copilot, Windsurf)
+- Parallel analysis with 3 specialized subagents (reference validity, coverage, clarity)
+- Scored quality report (Accuracy, Coverage, Clarity with overall A-F grade)
+- Severity-ranked findings with actionable remediation
+- Handles repos with zero context files (suggests what to create)
+
+**Example:**
+```bash
+/context-audit                          # Full audit of all context files
+/context-audit focus on CLAUDE.md only  # Audit specific file
+```
 
 ## Available Commands
 
@@ -429,12 +429,12 @@ skills/                      # Repository root
 │   │   └── SKILL.md
 │   ├── code-simplifier/
 │   │   └── SKILL.md
-│   ├── ai-context-quality/
-│   │   ├── SKILL.md
-│   │   └── CHECKLISTS.md
 │   ├── aws-limits/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
+│   ├── context-audit/
+│   │   ├── SKILL.md
+│   │   └── CHECKLISTS.md
 │   ├── security-audit-owasp-top-10/
 │   │   ├── SKILL.md
 │   │   ├── CATEGORIES.md
