@@ -5,7 +5,7 @@ description: Provide actionable feedback on code changes. Focuses on bugs, secur
 
 # Code Review
 
-Review code changes using THREE (3) to FOUR (4) parallel subagents and correlate results into a summary ranked by severity.
+Review code changes using THREE (3) to FIVE (5) parallel subagents and correlate results into a summary ranked by severity.
 
 Use the provided user guidance to steer the review and focus on specific code paths, changes, and/or areas of concern.
 
@@ -23,16 +23,31 @@ Use the provided user guidance to steer the review and focus on specific code pa
 2. Check if the changes include AWS infrastructure files:
    - Terraform files (`*.tf`) containing AWS patterns (`provider "aws"`, `aws_` resources, or `hashicorp/aws`)
    - CDK files (TypeScript files containing `aws-cdk`, `@aws-cdk`, `cdk.Stack`, `cdk.App`, or `Construct` patterns)
-3. Launch parallel Task agents:
+3. Check if the changes add new dependencies by looking for additions in:
+   - `package.json` (new entries in `dependencies` or `devDependencies`)
+   - `requirements.txt`, `pyproject.toml`, `setup.py`, `setup.cfg`
+   - `Cargo.toml` (new entries in `[dependencies]` or `[dev-dependencies]`)
+   - `go.mod` (new `require` entries)
+   - `Gemfile`, `*.gemspec`
+   - `composer.json`
+   - Any other language-specific dependency manifest
+   - **Only trigger on newly added dependencies**, not version bumps of existing ones
+4. Launch parallel Task agents:
    - THREE agents with `subagent_type: general-purpose`, each instructed to:
      - Read the full file context (not just diffs) to understand surrounding logic
      - Focus on different aspects: bugs/logic, security/auth, and patterns/structure
      - Follow the detailed review guidelines below
    - If AWS infrastructure detected: ONE additional agent with `subagent_type: aws-limits` to review AWS service quota violations in the changed infrastructure files
-4. Collect all findings and produce a **consolidated summary**
-5. Rank issues by severity: Critical > High > Medium > Low
-6. Include file paths and line numbers for each finding
-7. Suggest fixes where appropriate
+   - If new dependencies detected: ONE additional agent with `subagent_type: general-purpose` to verify license compliance:
+     - Extract the list of newly added dependency names and versions from the diff
+     - For each new dependency, determine its license (use the package registry API or repository metadata — e.g. `npm view <pkg> license`, `pip show <pkg>`, `cargo info <pkg>`, or check the project's GitHub repo)
+     - Flag any dependency whose license is **not** in the permissive allowlist: `MIT`, `ISC`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0`, `0BSD`, `Unlicense`, `CC0-1.0`, `BlueOak-1.0.0`
+     - For flagged dependencies, report: package name, detected license, and why it may be problematic (e.g. copyleft, proprietary, unknown)
+     - Severity: **Critical** for proprietary/unknown licenses, **High** for copyleft (GPL, AGPL, LGPL, MPL), **Medium** for weak copyleft or uncommon licenses
+5. Collect all findings and produce a **consolidated summary**
+6. Rank issues by severity: Critical > High > Medium > Low
+7. Include file paths and line numbers for each finding
+8. Suggest fixes where appropriate
 
 ## Review Guidelines
 
@@ -95,6 +110,9 @@ Use the provided user guidance to steer the review and focus on specific code pa
 
 ### AWS Service Limits (if applicable)
 - [file:line] Description of limit concern
+
+### License Compliance (if applicable)
+- [package-name] License: <license> — Reason flagged
 
 ### Summary
 Brief overall assessment of the changes.
