@@ -1,4 +1,4 @@
-# AI Context Quality Checklists
+# Context Audit Checklists
 
 Detailed criteria used by each analysis subagent. Referenced from [SKILL.md](SKILL.md).
 
@@ -20,7 +20,7 @@ Check every reference in context files against the actual codebase:
 
 ### Dependency References
 - [ ] Package names match entries in dependency manifests
-- [ ] Referenced CLI tools are available (`npm`, `cargo`, `pnpm`)
+- [ ] Referenced CLI tools match actual usage in scripts, configs, or documentation (`npm`, `cargo`, `pnpm`)
 - [ ] Referenced scripts exist in `package.json` scripts or equivalent
 
 ### External References
