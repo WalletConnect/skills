@@ -603,9 +603,6 @@ skills/                      # Repository root
 ├── skills/                  # All team skills (primary location)
 │   ├── agent-creator/
 │   │   └── SKILL.md
-│   ├── ai-context-quality/
-│   │   ├── SKILL.md
-│   │   └── CHECKLISTS.md
 │   ├── aws-limits/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
@@ -615,6 +612,9 @@ skills/                      # Repository root
 │   │   └── SKILL.md
 │   ├── command-creator/
 │   │   └── SKILL.md
+│   ├── context-audit/
+│   │   ├── SKILL.md
+│   │   └── CHECKLISTS.md
 │   ├── deepnote-notebook/
 │   │   └── SKILL.md
 │   ├── github-dependabot-report/
