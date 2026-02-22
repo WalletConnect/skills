@@ -65,7 +65,7 @@ def extract_licenses_solidity(project_path: Path) -> tuple[list[dict], bool, int
     if not submodules and project_path.parent != project_path:
         submodules = _parse_gitmodules(project_path.parent)
     if submodules:
-        github_subs = [s for s in submodules if "github.com" in s.get("url", "")]
+        github_subs = [s for s in submodules if extract_github_org_repo(s.get("url", ""))]
         if github_subs:
             print(f"  Looking up {len(github_subs)} Foundry submodule licenses via GitHub...", file=sys.stderr)
             resolved = 0

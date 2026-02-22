@@ -6,8 +6,20 @@ import json
 import subprocess
 from typing import Optional
 from urllib.error import URLError
-from urllib.parse import quote as urlquote
+from urllib.parse import quote as urlquote, urlparse
 from urllib.request import Request, urlopen
+
+
+def _is_github_host(url: str) -> bool:
+    """Check if a URL's hostname is exactly github.com."""
+    # Handle git@ SSH URLs: git@github.com:org/repo.git
+    if url.startswith("git@github.com:"):
+        return True
+    # Handle bare github.com/... (no scheme) — add scheme for urlparse
+    if url.startswith("github.com/"):
+        url = "https://" + url
+    parsed = urlparse(url)
+    return parsed.hostname == "github.com"
 
 
 def extract_github_org_repo(url: str) -> Optional[tuple[str, str]]:
@@ -15,11 +27,20 @@ def extract_github_org_repo(url: str) -> Optional[tuple[str, str]]:
     url = url.rstrip("/")
     if url.endswith(".git"):
         url = url[:-4]
-    # Handle https://github.com/org/repo
-    if "github.com/" in url:
-        parts = url.split("github.com/", 1)[1].split("/")
+    if not _is_github_host(url):
+        return None
+    # Handle git@ SSH URLs: git@github.com:org/repo
+    if url.startswith("git@github.com:"):
+        path = url.split("git@github.com:", 1)[1]
+        parts = path.split("/")
         if len(parts) >= 2:
             return parts[0], parts[1]
+    # Handle https://github.com/org/repo (add scheme if bare)
+    to_parse = url if "://" in url else "https://" + url
+    parsed = urlparse(to_parse)
+    path_parts = [p for p in parsed.path.split("/") if p]
+    if len(path_parts) >= 2:
+        return path_parts[0], path_parts[1]
     return None
 
 

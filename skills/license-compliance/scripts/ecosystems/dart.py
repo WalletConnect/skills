@@ -29,7 +29,7 @@ def lookup_pub_dev_repo(package_name: str) -> Optional[tuple[str, str]]:
         pubspec = data.get("latest", {}).get("pubspec", {})
         for key in ("repository", "homepage"):
             repo_url = pubspec.get(key, "")
-            if repo_url and "github.com/" in repo_url:
+            if repo_url:
                 gh = extract_github_org_repo(repo_url)
                 if gh:
                     return gh
