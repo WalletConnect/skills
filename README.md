@@ -59,6 +59,7 @@ ls ~/.claude/commands/
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
+| `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
 
 ### Skill Details
 
