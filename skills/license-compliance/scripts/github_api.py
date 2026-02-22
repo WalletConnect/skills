@@ -10,16 +10,19 @@ from urllib.parse import quote as urlquote, urlparse
 from urllib.request import Request, urlopen
 
 
+_GITHUB_HOST = "github.com"
+
+
 def _is_github_host(url: str) -> bool:
     """Check if a URL's hostname is exactly github.com."""
     # Handle git@ SSH URLs: git@github.com:org/repo.git
-    if url.startswith("git@github.com:"):
-        return True
-    # Handle bare github.com/... (no scheme) — add scheme for urlparse
-    if url.startswith("github.com/"):
-        url = "https://" + url
-    parsed = urlparse(url)
-    return parsed.hostname == "github.com"
+    if url.startswith("git@") and ":" in url:
+        host = url.split("@", 1)[1].split(":", 1)[0]
+        return host == _GITHUB_HOST
+    # Ensure urlparse gets a scheme so it can parse the hostname
+    to_parse = url if "://" in url else "https://" + url
+    parsed = urlparse(to_parse)
+    return parsed.hostname == _GITHUB_HOST
 
 
 def extract_github_org_repo(url: str) -> Optional[tuple[str, str]]:
@@ -30,8 +33,9 @@ def extract_github_org_repo(url: str) -> Optional[tuple[str, str]]:
     if not _is_github_host(url):
         return None
     # Handle git@ SSH URLs: git@github.com:org/repo
-    if url.startswith("git@github.com:"):
-        path = url.split("git@github.com:", 1)[1]
+    ssh_prefix = f"git@{_GITHUB_HOST}:"
+    if url.startswith(ssh_prefix):
+        path = url.split(ssh_prefix, 1)[1]
         parts = path.split("/")
         if len(parts) >= 2:
             return parts[0], parts[1]

@@ -47,19 +47,20 @@ def _parse_go_sum(project_path: Path) -> list[dict]:
     return deps
 
 
+_GITHUB_HOST = "github.com"
+
+
 def _go_module_to_github(module_path: str) -> Optional[tuple[str, str]]:
     """Convert a Go module path to a GitHub (owner, repo) tuple.
 
     Handles github.com/org/repo and golang.org/x/... paths.
     """
-    if module_path.startswith("github.com/"):
-        parts = module_path.split("/")
-        if len(parts) >= 3:
-            return parts[1], parts[2]
+    parts = module_path.split("/")
+    if parts[0] == _GITHUB_HOST and len(parts) >= 3:
+        return parts[1], parts[2]
     # golang.org/x/* maps to github.com/golang/*
-    if module_path.startswith("golang.org/x/"):
-        name = module_path.split("/")[2]
-        return "golang", name
+    if len(parts) >= 3 and parts[0] == "golang.org" and parts[1] == "x":
+        return "golang", parts[2]
     # google.golang.org/* -> github.com/googleapis/*  (approximation)
     # Most other registries don't have a clean mapping
     return None

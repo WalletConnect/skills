@@ -172,11 +172,12 @@ def clone_and_install(repo: str, ref: Optional[str] = None) -> tuple[Optional[Pa
     """Clone a GitHub repo to a temp dir and install deps. Returns (path, pm)."""
     tmpdir = Path(tempfile.mkdtemp(prefix="license-check-"))
 
-    # Normalize repo arg
-    if repo.startswith("https://github.com/"):
-        repo = repo.replace("https://github.com/", "").rstrip("/")
-    if repo.startswith("github.com/"):
-        repo = repo.replace("github.com/", "").rstrip("/")
+    # Normalize repo arg: strip GitHub URL prefixes to get org/repo
+    from urllib.parse import urlparse as _urlparse
+    parsed = _urlparse(repo if "://" in repo else "https://" + repo)
+    if parsed.hostname == "github.com":
+        repo = parsed.path.strip("/")
+    repo = repo.rstrip("/")
 
     # Clone
     clone_cmd = ["gh", "repo", "clone", repo, str(tmpdir), "--", "--depth", "1"]
