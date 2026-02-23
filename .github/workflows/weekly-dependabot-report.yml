@@ -1,0 +1,50 @@
+name: Weekly Dependabot Report
+
+on:
+  # schedule:
+  #   - cron: '0 9 * * 1' # Every Monday at 9 AM UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  report:
+    name: Generate & Deliver Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install dependencies
+        working-directory: skills/github-dependabot-report
+        run: npm install
+
+      - name: Generate & deliver Dependabot report
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          node skills/github-dependabot-report/scripts/run-report.mjs \
+            skills/github-dependabot-report
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependabot-report
+          path: ./report.md
+          retention-days: 90

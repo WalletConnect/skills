@@ -169,6 +169,9 @@ const server = createSdkMcpServer({
   ],
 });
 
+// Prevent nested session detection when run inside Claude Code
+delete process.env.CLAUDECODE;
+
 // Build prompt
 const prompt = [
   "Follow the skill instructions provided in your system prompt.",
@@ -192,7 +195,7 @@ try {
   for await (const message of query({
     prompt,
     options: {
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-6",
       maxTurns: 10,
       maxBudgetUsd: 0.50,
       permissionMode: "bypassPermissions",
