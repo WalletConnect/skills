@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Unified Dependabot Report — Generate & Deliver via Claude Agent SDK
+ * Dependabot Report — Generate & Deliver via Anthropic Messages API
  *
- * Reads SKILL.md as the agent's instructions, exposes tools for running
- * the Python report script, reading files, and posting to Slack.
+ * Reads SKILL.md for context, runs the Python report script, asks Claude
+ * to compose a Slack summary, and posts it via webhook.
  *
  * Usage:
- *   node security/dependabot-report/scripts/run-report.mjs <skill-dir> [--dry-run]
+ *   node scripts/run-report.mjs <skill-dir> [--dry-run]
  *
  * Environment:
- *   ANTHROPIC_API_KEY  - Required for Claude Agent SDK
+ *   ANTHROPIC_API_KEY  - Required for Claude API
  *   GH_TOKEN           - Required for the Python report script (GitHub API)
  *   SLACK_WEBHOOK_URL  - Slack incoming webhook URL (optional in dry-run)
  */
@@ -17,8 +17,7 @@
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import Anthropic from "@anthropic-ai/sdk";
 
 const skillDir = process.argv[2];
 const dryRun = process.argv.includes("--dry-run");
@@ -42,6 +41,7 @@ if (!webhookUrl && !dryRun) {
 const resolvedSkillDir = resolve(skillDir);
 const skillPath = join(resolvedSkillDir, "SKILL.md");
 const scriptPath = join(resolvedSkillDir, "scripts", "dependabot_report.py");
+const reportPath = resolve("./report.md");
 
 let skillContent;
 try {
@@ -51,183 +51,110 @@ try {
   process.exit(1);
 }
 
-// Create MCP server with tools for the agent
-const server = createSdkMcpServer({
-  name: "report-tools",
-  version: "1.0.0",
-  tools: [
-    // Tool 1: Run the Python report script
-    tool(
-      "generate_report",
-      "Run the Dependabot report Python script. Returns stdout and the generated report content.",
-      {
-        output_path: z.string().describe("File path where the report should be written (e.g. ./report.md)"),
-        extra_args: z.array(z.string()).optional().describe("Additional CLI arguments for the script"),
-      },
-      async (args) => {
-        const cmdArgs = [scriptPath, "--output", args.output_path];
-        if (args.extra_args) cmdArgs.push(...args.extra_args);
-
-        try {
-          const stdout = execFileSync("python3", cmdArgs, {
-            encoding: "utf-8",
-            timeout: 120_000,
-            env: { ...process.env },
-          });
-
-          // Read the generated file back
-          let reportContent = "";
-          try {
-            reportContent = readFileSync(resolve(args.output_path), "utf-8");
-          } catch {
-            reportContent = "(could not read output file)";
-          }
-
-          return {
-            content: [
-              { type: "text", text: `Script stdout:\n${stdout}\n\n---\nGenerated report:\n${reportContent}` },
-            ],
-          };
-        } catch (err) {
-          return {
-            content: [{ type: "text", text: `Script failed: ${err.message}\n${err.stderr || ""}` }],
-            isError: true,
-          };
-        }
-      }
-    ),
-
-    // Tool 2: Read a file
-    tool(
-      "read_file",
-      "Read the contents of a file.",
-      {
-        path: z.string().describe("File path to read"),
-      },
-      async (args) => {
-        try {
-          const content = readFileSync(resolve(args.path), "utf-8");
-          return { content: [{ type: "text", text: content }] };
-        } catch (err) {
-          return {
-            content: [{ type: "text", text: `Error reading file: ${err.message}` }],
-            isError: true,
-          };
-        }
-      }
-    ),
-
-    // Tool 3: Post to Slack
-    tool(
-      "send_slack_message",
-      "Post a message to the configured Slack channel via webhook. Use Slack mrkdwn formatting.",
-      {
-        text: z.string().describe("The message text to post to Slack (supports Slack mrkdwn)"),
-      },
-      async (args) => {
-        if (dryRun) {
-          console.log("\n--- DRY RUN: Would post to Slack ---");
-          console.log(args.text);
-          console.log("--- End dry run ---\n");
-          return {
-            content: [{ type: "text", text: "Dry run: message logged but not sent." }],
-          };
-        }
-
-        if (!webhookUrl) {
-          return {
-            content: [{ type: "text", text: "No SLACK_WEBHOOK_URL configured. Message not sent." }],
-          };
-        }
-
-        try {
-          const resp = await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: args.text }),
-          });
-
-          if (!resp.ok) {
-            const body = await resp.text();
-            return {
-              content: [{ type: "text", text: `Slack API error (${resp.status}): ${body}` }],
-              isError: true,
-            };
-          }
-
-          return {
-            content: [{ type: "text", text: "Message posted to Slack successfully." }],
-          };
-        } catch (err) {
-          return {
-            content: [{ type: "text", text: `Failed to post to Slack: ${err.message}` }],
-            isError: true,
-          };
-        }
-      }
-    ),
-  ],
-});
-
-// Prevent nested session detection when run inside Claude Code
-delete process.env.CLAUDECODE;
-
-// Build prompt
-const prompt = [
-  "Follow the skill instructions provided in your system prompt.",
-  "Generate the Dependabot report to `./report.md`, then deliver a Slack summary.",
-  "",
-  "Steps:",
-  '1. Use the `generate_report` tool with output_path "./report.md"',
-  "2. Review the report content returned by the tool",
-  "3. If there are critical/high alerts, use `send_slack_message` to post a concise summary",
-  "4. If there are zero alerts, skip Slack and respond that all is clear",
-].join("\n");
-
-// Run the agent
+// --- Step 1: Run the Python report script ---
 console.log(`Skill dir: ${resolvedSkillDir}`);
 console.log(`Python script: ${scriptPath}`);
 if (dryRun) console.log("Mode: dry-run (Slack messages will be logged, not sent)");
 
+console.log("\n--- Generating report ---");
+let scriptOutput;
 try {
-  let result = null;
+  scriptOutput = execFileSync("python3", [scriptPath, "--output", reportPath], {
+    encoding: "utf-8",
+    timeout: 300_000,
+    env: { ...process.env },
+  });
+  console.log(scriptOutput);
+} catch (err) {
+  console.error(`Python script failed: ${err.message}`);
+  if (err.stderr) console.error(err.stderr);
+  process.exit(1);
+}
 
-  for await (const message of query({
-    prompt,
-    options: {
-      model: "claude-sonnet-4-6",
-      maxTurns: 10,
-      maxBudgetUsd: 0.50,
-      permissionMode: "bypassPermissions",
-      allowDangerouslySkipPermissions: true,
-      allowedTools: [
-        "mcp__report-tools__generate_report",
-        "mcp__report-tools__read_file",
-        "mcp__report-tools__send_slack_message",
-      ],
-      mcpServers: { "report-tools": server },
-      systemPrompt: skillContent,
-    },
-  })) {
-    if (message.type === "result") {
-      if (message.subtype === "success") {
-        result = message;
-        console.log(`\nAgent result: ${message.result}`);
-        console.log(`Cost: $${message.total_cost_usd.toFixed(4)}`);
-        console.log(`Turns: ${message.num_turns}`);
-      } else {
-        console.error(`Agent error: ${message.subtype}`);
-        if (message.errors) console.error(message.errors);
-        process.exit(1);
-      }
-    }
-  }
+// --- Step 2: Read the generated report ---
+let reportContent;
+try {
+  reportContent = readFileSync(reportPath, "utf-8");
+  console.log(`Report generated: ${reportPath} (${reportContent.length} chars)`);
+} catch (err) {
+  console.error(`Failed to read report: ${err.message}`);
+  process.exit(1);
+}
 
-  if (!result) {
-    console.error("Agent finished without producing a result");
+// --- Step 3: Ask Claude to compose a Slack summary ---
+console.log("\n--- Composing Slack summary ---");
+
+const client = new Anthropic();
+
+const slackPrompt = [
+  "You are a security reporting assistant. Below is a Dependabot security alerts report.",
+  "Compose a concise Slack summary using Slack mrkdwn formatting.",
+  "",
+  "Guidelines:",
+  "- Lead with total alert counts by severity (use emoji: \ud83d\udd34 critical, \ud83d\udfe0 high)",
+  "- Highlight the top 3-5 most affected repos",
+  "- Mention teams needing attention",
+  "- Keep it under 2000 characters",
+  "- If there are zero critical/high alerts, say all clear",
+  "- Do NOT use markdown code fences — output raw Slack mrkdwn only",
+  "",
+  "---",
+  "",
+  reportContent,
+].join("\n");
+
+let slackMessage;
+try {
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    system: skillContent,
+    messages: [{ role: "user", content: slackPrompt }],
+  });
+
+  slackMessage = response.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+
+  console.log(`Summary composed (${slackMessage.length} chars)`);
+  console.log(`API usage: ${response.usage.input_tokens} in / ${response.usage.output_tokens} out`);
+} catch (err) {
+  console.error(`Claude API error: ${err.message}`);
+  process.exit(1);
+}
+
+// --- Step 4: Post to Slack ---
+if (dryRun) {
+  console.log("\n--- DRY RUN: Would post to Slack ---");
+  console.log(slackMessage);
+  console.log("--- End dry run ---");
+  process.exit(0);
+}
+
+if (!webhookUrl) {
+  console.log("\nNo SLACK_WEBHOOK_URL — skipping Slack delivery.");
+  console.log("\n--- Slack message preview ---");
+  console.log(slackMessage);
+  process.exit(0);
+}
+
+console.log("\n--- Posting to Slack ---");
+try {
+  const resp = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: slackMessage }),
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    console.error(`Slack API error (${resp.status}): ${body}`);
     process.exit(1);
   }
+
+  console.log("Posted to Slack successfully.");
 } catch (err) {
-  console.error(`Agent SDK error: ${err.message}`);
+  console.error(`Failed to post to Slack: ${err.message}`);
   process.exit(1);
 }

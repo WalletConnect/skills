@@ -85,7 +85,7 @@ Repositories are assigned to teams based on GitHub topics matching the pattern `
 
 **Local (interactive):** After generating the report, summarize key findings and offer to post to Slack using the Slack MCP tool if available. The summary should include total alert counts, top affected repos, and teams needing attention.
 
-**CI:** The `WalletConnect/actions` repo has a weekly workflow (`.github/workflows/weekly-dependabot-report.yml`) that generates the report and delivers a summary to Slack via the Claude Agent SDK. See that workflow for CI-specific delivery configuration.
+**CI:** The `WalletConnect/skills` repo has a weekly workflow (`.github/workflows/weekly-dependabot-report.yml`) that runs the Python report script, uses the Anthropic Messages API to compose a Slack summary, and posts it via webhook.
 
 ## Validation checklist
 

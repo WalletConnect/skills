@@ -25,9 +25,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-
       - name: Install dependencies
         working-directory: skills/github-dependabot-report
         run: npm install
