@@ -44,8 +44,11 @@ def run_gh_command(args: list[str], silent: bool = False, timeout: int = 300) ->
         return None
 
 
-def get_org_alerts(org: str, include_medium: bool = False) -> list[dict]:
-    """Get all open Dependabot alerts for an organization."""
+def get_org_alerts(org: str, include_medium: bool = False) -> tuple[bool, list[dict]]:
+    """Get all open Dependabot alerts for an organization.
+
+    Returns (success, alerts) — success is False when the API call failed.
+    """
     print(f"  Fetching alerts for {org}...")
 
     output = run_gh_command([
@@ -54,14 +57,14 @@ def get_org_alerts(org: str, include_medium: bool = False) -> list[dict]:
     ], timeout=300)
 
     if not output:
-        print(f"    Failed to fetch alerts for {org}")
-        return []
+        print(f"    ERROR: Failed to fetch alerts for {org} (check token permissions)", file=sys.stderr)
+        return False, []
 
     try:
         all_alerts = json.loads(output)
     except json.JSONDecodeError as e:
-        print(f"    JSON decode error: {e}")
-        return []
+        print(f"    ERROR: JSON decode error for {org}: {e}", file=sys.stderr)
+        return False, []
 
     severities = {"critical", "high"}
     if include_medium:
@@ -74,7 +77,7 @@ def get_org_alerts(org: str, include_medium: bool = False) -> list[dict]:
     ]
 
     print(f"    Found {len(alerts)} open alerts (critical/high{'/medium' if include_medium else ''})")
-    return alerts
+    return True, alerts
 
 
 def get_repo_topics(org: str, repo: str) -> list[str]:
@@ -117,9 +120,19 @@ def generate_report(
     print("Scanning organizations for Dependabot alerts...")
 
     all_alerts = []
+    failed_orgs = []
     for org in orgs:
-        org_alerts = get_org_alerts(org, include_medium)
+        success, org_alerts = get_org_alerts(org, include_medium)
+        if not success:
+            failed_orgs.append(org)
         all_alerts.extend(org_alerts)
+
+    if failed_orgs:
+        print(f"\nERROR: Failed to fetch alerts from: {', '.join(failed_orgs)}", file=sys.stderr)
+        if len(failed_orgs) == len(orgs):
+            print("All organizations failed. This is likely a token permissions issue.", file=sys.stderr)
+            print("The GH_TOKEN needs 'security_events' scope (classic) or Dependabot alerts read access (fine-grained).", file=sys.stderr)
+            sys.exit(1)
 
     print(f"\nTotal alerts across all orgs: {len(all_alerts)}")
 
