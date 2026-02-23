@@ -1,0 +1,153 @@
+{
+  "license_overrides": {
+    "@reown/*": {
+      "license": "Reown Community License",
+      "tier": "custom",
+      "note": "Internal — Reown Community License Agreement (Aug 2025). No compliance concern for Reown projects."
+    },
+    "@metamask/sdk": {
+      "license": "ConsenSys Custom License",
+      "tier": "custom",
+      "note": "Non-commercial use only (<10k MAU). Commercial use requires license from ConsenSys (metamask.license@consensys.net)."
+    },
+    "@metamask/sdk-communication-layer": {
+      "license": "ConsenSys Custom License",
+      "tier": "custom",
+      "note": "Non-commercial use only (<10k MAU). Commercial use requires license from ConsenSys."
+    },
+    "@metamask/sdk-install-modal-web": {
+      "license": "ConsenSys Custom License",
+      "tier": "custom",
+      "note": "Non-commercial use only (<10k MAU). Commercial use requires license from ConsenSys."
+    },
+    "@walletconnect/*": {
+      "license": "Apache-2.0",
+      "tier": "permissive",
+      "note": "Apache-2.0 (SEE LICENSE IN LICENSE.md resolves to Apache-2.0)"
+    }
+  },
+  "license_tiers": {
+    "permissive": [
+      "MIT",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "ISC",
+      "Unlicense",
+      "CC0-1.0",
+      "0BSD",
+      "BlueOak-1.0.0",
+      "Zlib",
+      "Artistic-2.0",
+      "WTFPL",
+      "MIT-0",
+      "PSF-2.0",
+      "CC-BY-4.0",
+      "CC-BY-3.0",
+      "BSL-1.0",
+      "Unicode-3.0",
+      "Unicode-DFS-2016"
+    ],
+    "weak_copyleft": [
+      "LGPL-2.1",
+      "LGPL-2.1-only",
+      "LGPL-2.1-or-later",
+      "LGPL-3.0",
+      "LGPL-3.0-only",
+      "LGPL-3.0-or-later",
+      "MPL-2.0",
+      "EPL-1.0",
+      "EPL-2.0",
+      "CDDL-1.0",
+      "CDDL-1.1"
+    ],
+    "restrictive": [
+      "GPL-2.0",
+      "GPL-2.0-only",
+      "GPL-2.0-or-later",
+      "GPL-3.0",
+      "GPL-3.0-only",
+      "GPL-3.0-or-later",
+      "AGPL-3.0",
+      "AGPL-3.0-only",
+      "AGPL-3.0-or-later",
+      "SSPL-1.0",
+      "EUPL-1.1",
+      "EUPL-1.2",
+      "OSL-3.0"
+    ]
+  },
+  "severity_map": {
+    "permissive": "OK",
+    "weak_copyleft": "MEDIUM",
+    "restrictive": "HIGH",
+    "custom": "REVIEW",
+    "unknown": "LOW"
+  },
+  "dev_severity_reduction": {
+    "HIGH": "MEDIUM",
+    "MEDIUM": "LOW",
+    "LOW": "LOW",
+    "OK": "OK"
+  },
+  "aliases": {
+    "BSD": "BSD-2-Clause",
+    "Apache 2.0": "Apache-2.0",
+    "Apache 2": "Apache-2.0",
+    "Apache License 2.0": "Apache-2.0",
+    "Apache License, Version 2.0": "Apache-2.0",
+    "MIT License": "MIT",
+    "The MIT License": "MIT",
+    "ISC License": "ISC",
+    "The ISC License": "ISC",
+    "BSD-like": "BSD-2-Clause",
+    "BSD 2-Clause": "BSD-2-Clause",
+    "BSD 3-Clause": "BSD-3-Clause",
+    "Simplified BSD": "BSD-2-Clause",
+    "New BSD": "BSD-3-Clause",
+    "Modified BSD": "BSD-3-Clause",
+    "GPLv2": "GPL-2.0",
+    "GPLv3": "GPL-3.0",
+    "GPL v2": "GPL-2.0",
+    "GPL v3": "GPL-3.0",
+    "GNU GPLv2": "GPL-2.0",
+    "GNU GPLv3": "GPL-3.0",
+    "LGPLv2": "LGPL-2.1",
+    "LGPLv2.1": "LGPL-2.1",
+    "LGPLv3": "LGPL-3.0",
+    "LGPL v2.1": "LGPL-2.1",
+    "LGPL v3": "LGPL-3.0",
+    "AGPLv3": "AGPL-3.0",
+    "MPL 2.0": "MPL-2.0",
+    "Mozilla Public License 2.0": "MPL-2.0",
+    "CC0": "CC0-1.0",
+    "CC-BY-1.0": "CC-BY-1.0",
+    "Public Domain": "Unlicense",
+    "UNLICENSED": "UNLICENSED",
+    "Python-2.0": "PSF-2.0",
+    "Boost Software License 1.0": "BSL-1.0",
+    "Boost Software License": "BSL-1.0",
+    "MIT License": "MIT",
+    "BSD License": "BSD-3-Clause",
+    "Apache Software License": "Apache-2.0",
+    "GNU General Public License v2 (GPLv2)": "GPL-2.0",
+    "GNU General Public License v3 (GPLv3)": "GPL-3.0",
+    "GNU General Public License v2 or later (GPLv2+)": "GPL-2.0-or-later",
+    "GNU General Public License v3 or later (GPLv3+)": "GPL-3.0-or-later",
+    "GNU Lesser General Public License v2 (LGPLv2)": "LGPL-2.1",
+    "GNU Lesser General Public License v2 or later (LGPLv2+)": "LGPL-2.1-or-later",
+    "GNU Lesser General Public License v3 (LGPLv3)": "LGPL-3.0",
+    "GNU Lesser General Public License v3 or later (LGPLv3+)": "LGPL-3.0-or-later",
+    "GNU Affero General Public License v3": "AGPL-3.0",
+    "GNU Affero General Public License v3 or later (AGPLv3+)": "AGPL-3.0-or-later",
+    "Mozilla Public License 2.0 (MPL 2.0)": "MPL-2.0",
+    "European Union Public Licence 1.2 (EUPL 1.2)": "EUPL-1.2",
+    "Eclipse Public License 1.0 (EPL-1.0)": "EPL-1.0",
+    "Eclipse Public License 2.0 (EPL-2.0)": "EPL-2.0",
+    "ISC License (ISCL)": "ISC",
+    "Zlib License": "Zlib",
+    "The Unlicense (Unlicense)": "Unlicense",
+    "Creative Commons Zero v1.0 Universal": "CC0-1.0",
+    "Creative Commons Attribution 4.0 International": "CC-BY-4.0"
+  }
+}
