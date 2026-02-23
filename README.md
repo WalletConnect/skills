@@ -59,6 +59,7 @@ ls ~/.claude/commands/
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
+| `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
 
 ### Skill Details
 
@@ -161,6 +162,40 @@ Analyzes recently modified code and applies refinements for clarity, consistency
 - Applies project-specific conventions
 - Early returns, dead code removal, constant extraction
 - Balance between simplicity and clarity
+
+#### walletconnect-pay
+Guides wallet developers through integrating WalletConnect Pay SDK so users can pay at any WC Pay-compatible POS terminal using USDC. Covers all three integration paths (WalletKit recommended, Standalone SDK, API-First) across all supported mobile frameworks.
+
+**Supported frameworks:** Kotlin (Android), Swift (iOS), React Native, Flutter
+**Supported assets:** USDC on Ethereum, Base, Optimism, Polygon, Arbitrum
+
+**Features:**
+- Framework selection guide (WalletKit vs Standalone vs API-First)
+- Complete payment flow: link detection → options → actions → signing → data collection → confirm
+- EIP-712 typed data signing examples per platform
+- KYC/KYT WebView data collection integration with prefill support
+- CAIP-10 account formatting for multi-chain payment options
+- Payment status polling patterns
+- Error handling and troubleshooting guide
+
+**Reference files included:**
+- `references/kotlin-walletkit.md` — Kotlin WalletKit integration
+- `references/swift-walletkit.md` — Swift WalletKit integration
+- `references/react-native-walletkit.md` — React Native WalletKit integration
+- `references/flutter-walletkit.md` — Flutter WalletKit integration
+- `references/kotlin-standalone.md` — Kotlin Standalone SDK (no WalletKit)
+- `references/api-first.md` — Direct Gateway API integration
+
+**Example:**
+```bash
+/walletconnect-pay
+# "I'm building a Swift iOS wallet, how do I integrate WalletConnect Pay?"
+# → Walks through WalletKit Swift setup, full payment flow, signing, WebView
+
+/walletconnect-pay
+# "My wallet doesn't use WalletKit, what are my options?"
+# → Explains Standalone SDK and API-First approaches with code examples
+```
 
 #### aws-limits
 Reviews Terraform, CloudFormation, CDK, or Pulumi code for AWS service limit violations that could cause production issues.
