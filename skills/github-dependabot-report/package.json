@@ -1,0 +1,13 @@
+{
+  "name": "@walletconnect/dependabot-report",
+  "version": "1.0.0",
+  "description": "Weekly Dependabot security alerts report with Slack delivery",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0"
+  }
+}
