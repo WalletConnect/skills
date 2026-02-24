@@ -12,6 +12,7 @@
  *   ANTHROPIC_API_KEY  - Required for Claude API
  *   GH_TOKEN           - Required for the Python report script (GitHub API)
  *   SLACK_WEBHOOK_URL  - Slack incoming webhook URL (optional in dry-run)
+ *   GITHUB_RUN_URL     - GitHub Actions run URL (optional, added to Slack message)
  */
 
 import { readFileSync } from "node:fs";
@@ -97,6 +98,11 @@ const slackPrompt = [
   "- Keep it under 2000 characters",
   "- If there are zero critical/high alerts, say all clear",
   "- Do NOT use markdown code fences — output raw Slack mrkdwn only",
+  "- End with a link to the full report (see below)",
+  "",
+  process.env.GITHUB_RUN_URL
+    ? `Full report & artifacts: ${process.env.GITHUB_RUN_URL}`
+    : "",
   "",
   "---",
   "",

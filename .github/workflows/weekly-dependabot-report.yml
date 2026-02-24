@@ -1,8 +1,8 @@
 name: Weekly Dependabot Report
 
 on:
-  # schedule:
-  #   - cron: '0 9 * * 1' # Every Monday at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9 AM UTC
   workflow_dispatch: # Manual trigger
 
 jobs:
@@ -33,7 +33,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEPENDABOT_REPORT_GH_PAT }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_WEEKLY_DEPENDABOT_ALERT }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           node skills/github-dependabot-report/scripts/run-report.mjs \
             skills/github-dependabot-report
