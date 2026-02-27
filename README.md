@@ -60,6 +60,7 @@ ls ~/.claude/commands/
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `aws-limits` | Review infrastructure code for AWS service quota violations | `/aws-limits` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
+| `repo-setup` | Set up AI agent docs (AGENTS.md), CLAUDE.md symlink, and auto-review workflow | `/repo-setup` |
 
 ### Skill Details
 
@@ -170,6 +171,24 @@ Reviews Terraform, CloudFormation, CDK, or Pulumi code for AWS service limit vio
 - Checks against known hard and soft limits
 - Severity-ranked findings with AWS documentation links
 - Mitigation suggestions for each violation
+
+#### repo-setup
+Sets up a repository with standardized AI agent documentation and automated PR review infrastructure following the WalletConnect checklist.
+
+**Features:**
+- Detects existing AGENTS.md / CLAUDE.md state and skips completed steps
+- Converts existing CLAUDE.md to agent-agnostic AGENTS.md
+- Runs Claude Code `/init` in a subagent for repos without any agent docs
+- Creates backward-compatible CLAUDE.md → AGENTS.md symlink
+- Sets up Claude auto-review GitHub Action workflow
+- Auto-detects default branch for workflow configuration
+
+**Example:**
+```bash
+/repo-setup                  # Full setup
+/repo-setup just docs        # Only AGENTS.md + symlink
+/repo-setup just workflow    # Only auto-review workflow
+```
 
 ## Available Commands
 
@@ -413,6 +432,9 @@ skills/                      # Repository root
 │   ├── code-simplifier/
 │   │   └── SKILL.md
 │   ├── aws-limits/
+│   │   ├── SKILL.md
+│   │   └── REFERENCE.md
+│   ├── repo-setup/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
 │   ├── security-audit-owasp-top-10/
