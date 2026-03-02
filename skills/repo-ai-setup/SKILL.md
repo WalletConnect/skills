@@ -1,12 +1,12 @@
 ---
-name: repo-setup
+name: repo-ai-setup
 description: |
   Sets up AI agent documentation and automated PR reviews. Creates AGENTS.md, CLAUDE.md symlink, and Claude auto-review GitHub Action.
 
   Triggers: "repo setup", "setup agents", "setup AI agents", "add AGENTS.md", "setup auto review", "setup repo"
 ---
 
-# Repo Setup
+# Repo AI Setup
 
 Set up AI agent documentation and automated PR review infrastructure for a WalletConnect repository.
 
