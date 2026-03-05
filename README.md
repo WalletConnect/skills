@@ -65,6 +65,7 @@ ls ~/.claude/commands/
 | `repo-ai-setup` | Set up AI agent docs (AGENTS.md), CLAUDE.md symlink, and auto-review workflow | `/repo-ai-setup` |
 | `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
+| `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
@@ -260,6 +261,44 @@ Creates a new git worktree in a sibling directory with proper branch naming foll
 # Prompts for commit type → Creates feat/alerts branch
 # Creates worktree at ../repo-name-feat-alerts
 ```
+
+#### walletconnect-pay
+Guides wallet developers through integrating WalletConnect Pay SDK so users can pay at any WC Pay-compatible POS terminal using USDC. Covers all three integration paths (WalletKit recommended, Standalone SDK, API-First) across all supported mobile frameworks.
+
+**Supported frameworks:** Kotlin (Android), Swift (iOS), React Native, Flutter
+**Supported assets:** USDC on Ethereum, Base, Optimism, Polygon, Arbitrum
+
+**Features:**
+- Framework selection guide (WalletKit vs Standalone vs API-First)
+- Complete payment flow: link detection → options → actions → signing → data collection → confirm
+- EIP-712 typed data signing examples per platform
+- KYC/KYT WebView data collection integration with prefill support
+- CAIP-10 account formatting for multi-chain payment options
+- Payment status polling patterns
+- Error handling and troubleshooting guide
+
+**Reference files included:**
+- `references/kotlin-walletkit.md` — Kotlin WalletKit integration
+- `references/swift-walletkit.md` — Swift WalletKit integration
+- `references/react-native-walletkit.md` — React Native WalletKit integration
+- `references/flutter-walletkit.md` — Flutter WalletKit integration
+- `references/kotlin-standalone.md` — Kotlin Standalone SDK (no WalletKit)
+- `references/swift-standalone.md` — Swift Standalone SDK (no WalletKit)
+- `references/react-native-standalone.md` — React Native Standalone SDK (no WalletKit)
+- `references/flutter-standalone.md` — Flutter Standalone SDK (no WalletKit)
+- `references/api-first.md` — Direct Gateway API integration
+
+**Example:**
+```bash
+/walletconnect-pay
+# "I'm building a Swift iOS wallet, how do I integrate WalletConnect Pay?"
+# → Walks through WalletKit Swift setup, full payment flow, signing, WebView
+
+/walletconnect-pay
+# "My wallet doesn't use WalletKit, what are my options?"
+# → Explains Standalone SDK and API-First approaches with code examples
+```
+
 
 ## Available Commands
 
