@@ -26,11 +26,19 @@ Thumbs.db
 !.claude/skills/
 !.claude/agents/
 
+# Python
+__pycache__/
+*.pyc
+
 # Node
 node_modules/
 package-lock.json
 npm-debug.log
 yarn-error.log
+
+# Secrets
+.secrets
+.env
 
 # Test files
 test/
