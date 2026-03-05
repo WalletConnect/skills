@@ -44,6 +44,9 @@ Jump to the right reference:
 - [React Native (WalletKit)](references/react-native-walletkit.md)
 - [Flutter (WalletKit)](references/flutter-walletkit.md)
 - [Kotlin Standalone SDK](references/kotlin-standalone.md)
+- [Swift Standalone SDK](references/swift-standalone.md)
+- [React Native Standalone SDK](references/react-native-standalone.md)
+- [Flutter Standalone SDK](references/flutter-standalone.md)
 - [API-First (all platforms)](references/api-first.md)
 
 ## Prerequisites
@@ -255,4 +258,6 @@ if let collectData = selectedOption.collectData {
 2. **Non-activation** — "How do I set up WalletConnect session management for my dApp?" (standard WC, not Pay)
 3. **Edge case** — "My wallet only has Ethereum accounts. Will WC Pay still work?" (Answer: yes, but fewer options; recommend adding multi-chain accounts)
 4. **Edge case** — "When should I show the WebView for data collection?" (Answer: only when `collectData` is non-null on the selected option)
-5. **Framework choice** — "I don't use WalletKit. How do I integrate WC Pay on Flutter?"
+5. **Framework choice** — "I don't use WalletKit. How do I integrate WC Pay on Flutter?" (Answer: use Flutter Standalone SDK)
+6. **Standalone Swift** — "I'm building an iOS wallet without WalletKit. How do I add WC Pay?" (Answer: use Swift Standalone SDK with SPM)
+7. **Standalone React Native** — "How do I add WC Pay to my React Native wallet without WalletKit?" (Answer: use `@walletconnect/pay` standalone package)
