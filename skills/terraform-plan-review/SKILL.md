@@ -40,6 +40,10 @@ Analyze Terraform plan output with the rigor of a staff DevOps engineer. Compare
 
 - Structured markdown report inline with resource counts, alignment check, risk assessment, detailed changes, and recommendations
 
+## Tool Requirements
+
+**Always use the `AskUserQuestion` tool** (never plain text) when you need clarification or confirmation from the user. This includes choosing between multiple files, confirming a command before running it, or requesting a file path.
+
 ## Workflow
 
 ### Phase 1: Acquire Plan Output
@@ -51,13 +55,13 @@ Waterfall strategy — try each approach in order:
    ```
    Glob: plan.txt, plan_output.txt, tfplan.txt, *plan*.txt
    ```
-   If exactly one match, use it. If multiple, ask user to pick.
+   If exactly one match, use it. If multiple, use `AskUserQuestion` to ask user to pick.
 3. **Generate**: If `.terraform/` directory exists, offer to run:
    ```bash
    terraform plan -no-color > /tmp/plan_output.txt 2>/tmp/plan_stderr.log; echo "EXIT CODE: $?"
    ```
-   Before running, check for `.tfvars` files (Glob `**/*.tfvars`) and if found, add `-var-file=<path>` to the command. `cd` into the directory containing `*.tf` files first if they are in a subdirectory. Wait for user confirmation before running. Analyze the result.
-4. **Ask**: If none of the above work, ask the user to provide a file path.
+   Before running, check for `.tfvars` files (Glob `**/*.tfvars`) and if found, add `-var-file=<path>` to the command. `cd` into the directory containing `*.tf` files first if they are in a subdirectory. Use `AskUserQuestion` to confirm the command before running. Analyze the result.
+4. **Ask**: If none of the above work, use `AskUserQuestion` to ask the user to provide a file path.
 
 Also check for optional log/stderr files:
 ```
