@@ -52,7 +52,11 @@ Waterfall strategy — try each approach in order:
    Glob: plan.txt, plan_output.txt, tfplan.txt, *plan*.txt
    ```
    If exactly one match, use it. If multiple, ask user to pick.
-3. **Generate**: If `.terraform/` directory exists (Glob `**/.terraform`), ask the user for the exact `terraform plan` command they normally run (including `-chdir`, `-var-file`, workspace, etc.). Then append `-no-color 2>/tmp/plan_stderr.log | tee /tmp/plan_output.txt` to their command. **Never guess terraform arguments** — projects vary widely. Wait for user confirmation before running.
+3. **Generate**: If `.terraform/` directory exists, offer to run:
+   ```bash
+   terraform plan -no-color > /tmp/plan_output.txt 2>/tmp/plan_stderr.log; echo "EXIT CODE: $?"
+   ```
+   Before running, check for `.tfvars` files (Glob `**/*.tfvars`) and if found, add `-var-file=<path>` to the command. `cd` into the directory containing `*.tf` files first if they are in a subdirectory. Wait for user confirmation before running. Analyze the result.
 4. **Ask**: If none of the above work, ask the user to provide a file path.
 
 Also check for optional log/stderr files:
