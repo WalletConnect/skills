@@ -16,7 +16,7 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (13 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, and more)
+- **Skills**: Custom slash commands that extend Claude's capabilities (14 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
 - **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
@@ -65,6 +65,7 @@ ls ~/.claude/commands/
 | `repo-ai-setup` | Set up AI agent docs (AGENTS.md), CLAUDE.md symlink, and auto-review workflow | `/repo-ai-setup` |
 | `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
+| `terraform-plan-review` | Analyze Terraform plan output — resource counts, alignment check, risk assessment, recommendations | `/terraform-plan-review [plan-file]` |
 | `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
@@ -245,6 +246,33 @@ Produces usable Skill packages optimized for discoverability, correctness, conci
 - Information architecture design
 - Frontmatter validation
 - Evaluation prompt generation
+
+#### terraform-plan-review
+Analyzes Terraform plan output with the rigor of a staff DevOps engineer. Compares planned changes against code diff, surfaces unexpected changes, assesses risk, and produces a structured review report — replicating CI-based plan review quality locally for immediate feedback.
+
+**Features:**
+- Waterfall plan acquisition (file path, auto-detect, generate, or ask)
+- Git diff alignment check (expected vs unexpected changes)
+- Risk assessment (destructive changes, data loss, IAM, networking, force-replacements)
+- High-risk resource type awareness (AWS, GCP, Azure)
+- Drift detection and common drift cause identification
+- Emoji-rich terminal-optimized report
+
+**Risk Categories:**
+- Destructive changes and data loss potential
+- IAM and permission escalation
+- Network exposure changes
+- Force-replacements of critical infrastructure
+- Cost impact and scaling changes
+- Provider warnings and deprecations
+
+**Example:**
+```bash
+/terraform-plan-review                  # Auto-detect plan file in cwd
+/terraform-plan-review plan_output.txt  # Analyze specific file
+# → Produces structured report with resource counts, alignment check,
+#   risk assessment, detailed changes, and recommendations
+```
 
 #### worktree
 Creates a new git worktree in a sibling directory with proper branch naming following conventional commit conventions. Useful when you need to work on multiple branches simultaneously.
@@ -574,6 +602,10 @@ skills/                      # Repository root
 │   │   └── EVALUATIONS.md
 │   ├── skill-writing/
 │   │   └── SKILL.md
+│   ├── terraform-plan-review/
+│   │   ├── SKILL.md
+│   │   ├── REFERENCE.md
+│   │   └── EVALUATIONS.md
 │   └── worktree/
 │       └── SKILL.md
 ├── .claude/
