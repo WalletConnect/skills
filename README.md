@@ -16,7 +16,7 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (14 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
+- **Skills**: Custom slash commands that extend Claude's capabilities (15 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
 - **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
@@ -58,6 +58,7 @@ ls ~/.claude/commands/
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
+| `deepnote-notebook` | Edit Deepnote .ipynb notebooks correctly by syncing the deepnote_source metadata field | Use when editing Deepnote notebooks |
 | `github-dependabot-report` | Generates Dependabot security alerts report for WalletConnect GitHub orgs, grouped by team | `/github-dependabot-report` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
 | `linear-cli` | Manages Linear issues via CLI - view, start, create, update issues and PRs | `/linear` or when managing Linear issues |
@@ -122,6 +123,22 @@ Guides you through creating custom slash commands as Markdown files with optiona
 - Frontmatter options (description, allowed-tools, model)
 - Arguments and bash execution
 - File references and namespacing
+
+#### deepnote-notebook
+Ensures edits to Deepnote-exported `.ipynb` notebooks are visible when re-imported into Deepnote. Deepnote stores a duplicate of cell content in `metadata.deepnote_source` which must be kept in sync with the standard `source` field.
+
+**Features:**
+- Automatic `deepnote_source` sync after `NotebookEdit` calls
+- SQL cell handling (raw SQL in `deepnote_source` vs Python wrapper in `source`)
+- New SQL cell metadata setup (`deepnote_cell_type`, `sql_integration_id`, `deepnote_variable_name`)
+- Verification step to catch stale content
+
+**Example:**
+```bash
+/deepnote-notebook
+# "Update the SQL query in cell 5 of analytics.ipynb"
+# → Edits source, syncs deepnote_source, verifies no stale content
+```
 
 #### github-dependabot-report
 Generates a Dependabot security alerts report for walletconnect, reown-com, and walletconnectfoundation GitHub orgs. Groups alerts by team ownership (GitHub topics). Useful for reviewing security posture, preparing for security reviews, or tracking vulnerability remediation.
@@ -577,6 +594,8 @@ skills/                      # Repository root
 │   ├── code-simplifier/
 │   │   └── SKILL.md
 │   ├── command-creator/
+│   │   └── SKILL.md
+│   ├── deepnote-notebook/
 │   │   └── SKILL.md
 │   ├── github-dependabot-report/
 │   │   ├── SKILL.md
