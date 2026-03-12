@@ -22,16 +22,25 @@ Contact WalletConnect to obtain your API key after completing the access request
 ## Base URL
 
 ```
-https://pay.walletconnect.com
+https://api.pay.walletconnect.org
 ```
 
 ## Payment Link Validation
 
-Before calling APIs, validate that the URI is a genuine WC Pay link:
-- Domain must be `pay.walletconnect.com` or a subdomain
-- Path contains `pay_` prefix OR query contains `pay=` OR hostname starts with `pay.`
+QR codes encode a URL with the payment ID in the `pid` query parameter:
+```
+https://pay.walletconnect.com/?pid=pay_abc123
+```
 
-Extract the payment `id` from the link (e.g., `pay_abc123` → id is `pay_abc123`).
+Extract the payment ID:
+```typescript
+const url = new URL(scannedData);
+const paymentId = url.searchParams.get("pid"); // "pay_abc123"
+```
+
+Also accept:
+- Domain must be `pay.walletconnect.com` or a subdomain
+- Path contains `pay_` prefix OR query contains `pid=` OR hostname starts with `pay.`
 
 ---
 
@@ -59,42 +68,72 @@ Response:
   "paymentId": "pay_abc123",
   "options": [
     {
-      "id": "option_xyz",
+      "id": "c8f17780-267f-4ea6-bec1-8d143ca68a4c",
+      "account": "eip155:8453:0xYourAddress",
       "amount": {
-        "value": "1000000",
-        "unit": "iso4217/USD",
+        "value": "100000",
+        "unit": "caip19/eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         "display": {
-          "amount": "10.00",
           "assetSymbol": "USDC",
-          "networkName": "Base"
+          "assetName": "USD Coin",
+          "decimals": 6,
+          "networkName": "Base",
+          "iconUrl": "https://api.walletconnect.com/assets/v1/image/token/USDC/md",
+          "networkIconUrl": "https://api.walletconnect.com/assets/v1/image/network/eip155:8453/md"
         }
       },
-      "account": "eip155:8453:0xYourAddress",
       "etaS": 5,
+      "expiresAt": null,
       "actions": [
         {
-          "type": "walletRpc",
+          "type": "build",
           "data": {
-            "chainId": "eip155:8453",
-            "method": "eth_signTypedData_v4",
-            "params": "[\"0xYourAddress\", \"{...typed data...}\"]"
+            "data": "7b22636861696e5f6964223a226569703135353a38343533222c..."
           }
         }
       ],
-      "collectData": null
+      "collectData": {
+        "fields": [
+          { "type": "text", "id": "fullName", "name": "Full name", "required": true },
+          { "type": "date", "id": "dob", "name": "Date of birth", "required": true }
+        ],
+        "schema": { "...JSON Schema..." },
+        "url": "https://pay.walletconnect.com/collect/?pid=pay_abc123&accounts=..."
+      }
     }
   ],
-  "info": {
-    "merchant": { "name": "Coffee Shop" },
-    "amount": { "value": "1000000", "unit": "iso4217/USD" },
-    "expiresAt": "2025-01-01T12:05:00Z"
-  }
+  "info": null,
+  "collectData": { "...same structure as per-option..." }
 }
 ```
 
-**Note on `actions` types:**
+**Notes:**
+- `info` can be `null` even with `includePaymentInfo: true`
+- `amount.unit` uses CAIP-19 format, not ISO 4217
+- `amount.display` includes `assetName`, `decimals`, `iconUrl`, `networkIconUrl` in addition to `assetSymbol` and `networkName`
+- `expiresAt` is present on each option (can be `null`)
+- `collectData` appears both at top-level and per-option
+
+**Action types:**
 - `walletRpc` → ready to sign immediately
-- `build` → must call the Fetch endpoint first to get the signable action
+- `build` → contains hex-encoded walletRpc data (see below)
+
+### Decoding `build` actions
+
+A `build` action contains a `data.data` field that is a **hex-encoded JSON string**. Decode it to get the walletRpc action:
+
+```typescript
+const hex = action.data.data;
+const json = Buffer.from(hex, "hex").toString("utf8");
+const walletRpc = JSON.parse(json);
+// {
+//   "chain_id": "eip155:8453",
+//   "method": "eth_signTypedData_v4",
+//   "params": ["0xAddress", "{...EIP-712 typed data...}"]
+// }
+```
+
+Note: the decoded action uses `chain_id` (snake_case), not `chainId`.
 
 ---
 
@@ -102,16 +141,19 @@ Response:
 
 **`POST /v1/gateway/payment/{id}/fetch`**
 
-Only needed when an option's action type is `"build"`.
+Only needed when an option's action type is `"build"` and you prefer server-side resolution instead of decoding the hex client-side.
 
 Request:
 ```json
 {
-  "optionId": "option_xyz"
+  "optionId": "c8f17780-267f-4ea6-bec1-8d143ca68a4c",
+  "data": "7b22636861696e5f6964223a226569703135353a38343533222c..."
 }
 ```
 
-Response: returns `walletRpc` action ready for signing (same shape as above).
+**Important:** The `data` field is **required** and must be the hex string from `action.data.data`. It must be a string, not an object.
+
+Response: returns `walletRpc` action ready for signing.
 
 ---
 
@@ -122,19 +164,25 @@ Response: returns `walletRpc` action ready for signing (same shape as above).
 Request:
 ```json
 {
-  "optionId": "option_xyz",
+  "optionId": "c8f17780-267f-4ea6-bec1-8d143ca68a4c",
   "results": [
     {
       "type": "walletRpc",
       "data": ["0x<signature_hex>"]
     }
   ],
-  "collectedData": null
+  "collectedData": {
+    "fullName": "John Doe",
+    "dob": "1990-01-15",
+    "tosConfirmed": true,
+    "porCountry": "US",
+    "porAddress": "123 Main St, New York, NY"
+  }
 }
 ```
 
 - `results` order must match `actions` order exactly
-- `collectedData` is `null` when WebView handled data collection
+- `collectedData` is `null` when no compliance data is required, or when WebView handled data collection
 
 Response:
 ```json
@@ -175,10 +223,44 @@ Wrap the signature in the result format:
 
 ---
 
-## Data Collection WebView
+## Data Collection (Compliance)
 
-The API response includes `collectData.url` when compliance data is required.
-Open this URL in an in-app WebView. Listen for postMessage events:
+When `collectData` is present on an option, compliance data must be collected before confirming.
+
+### Option A: Native form using fields and schema
+
+The response includes structured `fields` and a JSON Schema:
+
+```json
+{
+  "fields": [
+    { "type": "text", "id": "fullName", "name": "Full name", "required": true },
+    { "type": "date", "id": "dob", "name": "Date of birth", "required": true }
+  ],
+  "schema": {
+    "required": ["fullName", "dob", "tosConfirmed"],
+    "properties": {
+      "fullName": { "type": "string", "minLength": 1 },
+      "dob": { "type": "string", "format": "date" },
+      "tosConfirmed": { "const": true, "type": "boolean" },
+      "porCountry": { "type": "string", "pattern": "^[A-Z]{2}$" },
+      "porAddress": { "type": "string", "maxLength": 200 },
+      "pobCountry": { "type": "string", "pattern": "^[A-Z]{2}$" },
+      "pobAddress": { "type": "string", "maxLength": 200 }
+    },
+    "anyOf": [
+      { "required": ["pobCountry", "pobAddress"] },
+      { "required": ["porCountry", "porAddress"] }
+    ]
+  }
+}
+```
+
+Build a native form, collect the data, and pass it as `collectedData` in the confirm request. Always include `"tosConfirmed": true`.
+
+### Option B: WebView
+
+Open `collectData.url` in an in-app WebView. Listen for postMessage events:
 
 ```
 { "type": "IC_COMPLETE" }  → user completed data entry, proceed to confirm
@@ -187,21 +269,29 @@ Open this URL in an in-app WebView. Listen for postMessage events:
 
 Prefill known user data by appending `?prefill=<base64(JSON)>` to the URL.
 
+When using the WebView, pass `"collectedData": null` in the confirm request.
+
 ---
 
 ## Full Integration Flow
 
 ```
-1. Validate payment link, extract payment ID
-2. POST /options  → get paymentId, options[], actions[]
-3. If action.type === "build":
-     POST /fetch → get walletRpc action
-4. Sign walletRpc actions (preserve order)
-5. If collectData.url exists:
-     Show WebView → await IC_COMPLETE
-6. POST /confirm { optionId, results, collectedData }
-7. Poll /confirm until isFinal === true
-8. Handle final status (succeeded/failed/expired)
+1. Scan QR code, extract `pid` query parameter
+2. POST /v1/gateway/payment/{pid}/options
+   Body: { accounts: [CAIP-10 addresses], includePaymentInfo: true }
+3. Pick an option (e.g. first with sufficient balance)
+4. For each action in option.actions:
+   - If type === "build": decode action.data.data from hex to JSON
+     (contains { chain_id, method, params })
+   - If type === "walletRpc": use action.data directly
+5. If option.collectData exists:
+   - Build native form from collectData.fields/schema, OR
+   - Open collectData.url in WebView → await IC_COMPLETE
+6. Sign params[1] (EIP-712 typed data) with wallet private key
+7. POST /v1/gateway/payment/{pid}/confirm
+   Body: { optionId, results: [{ type: "walletRpc", data: ["0xsig"] }], collectedData }
+8. Poll confirm until isFinal === true
+9. Handle final status (succeeded/failed/expired)
 ```
 
 ---
@@ -217,6 +307,7 @@ Prefill known user data by appending `?prefill=<base64(JSON)>` to the URL.
 | `invalid_signature` | Signature mismatch or wrong order |
 | `option_not_found` | Option ID is invalid for this payment |
 | `route_expired` | Liquidity route expired — get fresh options |
+| `params_validation` | Request body validation failed (check field types) |
 
 ---
 
