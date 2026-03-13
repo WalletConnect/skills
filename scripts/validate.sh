@@ -36,7 +36,7 @@ validate_skill() {
     # Check filename is SKILL.md
     if [[ "$(basename "$file")" != "SKILL.md" ]]; then
         echo -e "${RED}ERROR${NC} $file: Skill files must be named SKILL.md"
-        ((errors++))
+        ((errors++)) || true
     fi
 
     # Extract frontmatter
@@ -44,7 +44,7 @@ validate_skill() {
 
     if [[ -z "$frontmatter" ]]; then
         echo -e "${RED}ERROR${NC} $file: No frontmatter found (must start with ---)"
-        ((errors++))
+        ((errors++)) || true
         return $errors
     fi
 
@@ -54,12 +54,12 @@ validate_skill() {
 
     if [[ -z "$name" ]]; then
         echo -e "${RED}ERROR${NC} $file: Missing required field 'name' in frontmatter"
-        ((errors++))
+        ((errors++)) || true
     fi
 
     if [[ -z "$description" ]]; then
         echo -e "${RED}ERROR${NC} $file: Missing required field 'description' in frontmatter"
-        ((errors++))
+        ((errors++)) || true
     fi
 
     # Check if directory name matches skill name (if name exists)
@@ -76,11 +76,11 @@ echo "Validating skills..."
 skill_count=0
 if [[ -d "$REPO_ROOT/.claude/skills" ]]; then
     while IFS= read -r -d '' file; do
-        ((skill_count++))
+        ((skill_count++)) || true
         if validate_skill "$file"; then
             :
         else
-            ((ERRORS += $?))
+            ((ERRORS += $?)) || true
         fi
     done < <(find -L "$REPO_ROOT/.claude/skills" -name "SKILL.md" -print0)
 fi
