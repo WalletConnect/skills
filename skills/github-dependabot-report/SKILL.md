@@ -72,14 +72,25 @@ python3 ~/.claude/skills/github-dependabot-report/scripts/dependabot_report.py \
 
 The generated report includes:
 
-- **Executive summary**: Total alerts by severity across all orgs
+- **Executive summary**: In-scope alert counts by severity, with out-of-scope totals noted separately
 - **Team breakdown**: Alerts grouped by GitHub topic (e.g., `team-buyer-experience`)
 - **Unowned repos**: Repositories without team topics
-- **Per-repo details**: Alert counts, severity, and direct links
+- **Out of scope repos**: Repositories tagged `out-of-scope` (excluded from summary counts and alert details)
+- **Per-repo details**: Alert counts, severity, and direct links (in-scope repos only)
 
 ## Team ownership
 
 Repositories are assigned to teams based on GitHub topics matching the pattern `team-*`. Repos without team topics appear in the "Unowned" section.
+
+## Out-of-scope filtering
+
+Repositories tagged with the `out-of-scope` GitHub topic are separated from the main report. These are typically example/demo repos, forks, or experimental projects where Dependabot noise isn't actionable. Out-of-scope repos:
+
+- Are **excluded** from the executive summary severity counts
+- Are **excluded** from the per-repo alert details section
+- Appear in their own "Out of Scope Repositories" section with a summary table
+
+To mark a repo as out of scope, add the `out-of-scope` topic via GitHub settings or the API.
 
 ## Slack delivery
 

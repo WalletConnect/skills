@@ -20,6 +20,7 @@ from collections import defaultdict
 from typing import Optional
 
 ORGS = ["walletconnect", "reown-com", "walletconnectfoundation"]
+OUT_OF_SCOPE_TOPIC = "out-of-scope"
 
 
 def run_gh_command(args: list[str], silent: bool = False, timeout: int = 300) -> Optional[str]:
@@ -113,7 +114,9 @@ def generate_report(
 
     team_repos: dict[str, list[dict]] = defaultdict(list)
     unowned_repos: list[dict] = []
+    out_of_scope_repos: list[dict] = []
     total_by_severity: dict[str, int] = defaultdict(int)
+    oos_by_severity: dict[str, int] = defaultdict(int)
     repo_data_map: dict[str, dict] = {}
     repo_topics_cache: dict[str, list[str]] = {}
 
@@ -171,7 +174,13 @@ def generate_report(
             total_by_severity[sev] += 1
 
         for full_name, repo_data in repo_data_map.items():
-            teams = extract_team_topics(repo_data.get("topics", []))
+            topics = repo_data.get("topics", [])
+            if OUT_OF_SCOPE_TOPIC in topics:
+                out_of_scope_repos.append(repo_data)
+                for sev, count in repo_data["severity_counts"].items():
+                    oos_by_severity[sev] += count
+                continue
+            teams = extract_team_topics(topics)
             if teams:
                 for team in teams:
                     team_repos[team].append(repo_data)
@@ -181,6 +190,7 @@ def generate_report(
         print(f"\nRepositories with alerts: {len(repo_data_map)}")
         print(f"  Assigned to teams: {len(set(r['full_name'] for repos in team_repos.values() for r in repos))}")
         print(f"  Unowned: {len(unowned_repos)}")
+        print(f"  Out of scope: {len(out_of_scope_repos)}")
 
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -195,19 +205,27 @@ def generate_report(
         "|----------|-------|",
     ]
 
-    for sev in ["critical", "high", "medium"]:
-        if sev in total_by_severity or (sev != "medium" or include_medium):
-            lines.append(f"| {sev.capitalize()} | {total_by_severity.get(sev, 0)} |")
+    # Calculate in-scope totals (exclude out-of-scope)
+    in_scope_by_severity = {
+        sev: total_by_severity.get(sev, 0) - oos_by_severity.get(sev, 0)
+        for sev in total_by_severity
+    }
 
-    total_alerts = sum(total_by_severity.values())
+    for sev in ["critical", "high", "medium"]:
+        if sev in in_scope_by_severity or (sev != "medium" or include_medium):
+            lines.append(f"| {sev.capitalize()} | {in_scope_by_severity.get(sev, 0)} |")
+
+    in_scope_total = sum(in_scope_by_severity.values())
+    oos_total = sum(oos_by_severity.values())
     lines.extend([
         "",
-        f"**Total open alerts: {total_alerts}**",
+        f"**Total open alerts: {in_scope_total}**",
         "",
         f"**Organizations scanned:** {', '.join(orgs)}",
         "",
     ])
 
+    total_alerts = in_scope_total + oos_total
     if total_alerts == 0:
         lines.extend([
             "No critical or high severity Dependabot alerts found.",
@@ -255,6 +273,24 @@ def generate_report(
 
             lines.append("")
 
+        if out_of_scope_repos:
+            lines.append(f"### Out of Scope Repositories ({oos_total} alerts)")
+            lines.append("")
+            lines.append(f"These repositories are tagged `{OUT_OF_SCOPE_TOPIC}` and excluded from the summary above:")
+            lines.append("")
+            lines.append("| Repository | Critical | High | Link |")
+            lines.append("|------------|----------|------|------|")
+
+            for repo in sorted(out_of_scope_repos, key=lambda r: -r["total_alerts"]):
+                crit = repo["severity_counts"].get("critical", 0)
+                high = repo["severity_counts"].get("high", 0)
+                lines.append(
+                    f"| {repo['full_name']} | {crit} | {high} | "
+                    f"[View]({repo['security_url']}) |"
+                )
+
+            lines.append("")
+
     if total_alerts > 0:
         lines.append("## Alert Details")
         lines.append("")
@@ -263,11 +299,13 @@ def generate_report(
         for repos in team_repos.values():
             all_repos.extend(repos)
         all_repos.extend(unowned_repos)
+        # Exclude out-of-scope repos from detailed alert listing
+        oos_names = {r["full_name"] for r in out_of_scope_repos}
 
         seen = set()
         unique_repos = []
         for repo in all_repos:
-            if repo["full_name"] not in seen:
+            if repo["full_name"] not in seen and repo["full_name"] not in oos_names:
                 seen.add(repo["full_name"])
                 unique_repos.append(repo)
 
