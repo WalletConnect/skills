@@ -58,6 +58,7 @@ ls ~/.claude/commands/
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
+| `context-audit` | Audit AI context files for accuracy, coverage, and clarity against the actual codebase | `/context-audit` |
 | `deepnote-notebook` | Edit Deepnote .ipynb notebooks correctly by syncing the deepnote_source metadata field | Use when editing Deepnote notebooks |
 | `github-dependabot-report` | Generates Dependabot security alerts report for WalletConnect GitHub orgs, grouped by team | `/github-dependabot-report` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
@@ -167,6 +168,22 @@ Scans project dependencies for license compliance across 9 ecosystems. Classifie
 ```bash
 /license-compliance                        # Scan current project
 /license-compliance --repo org/repo        # Scan remote repo
+```
+
+#### context-audit
+Audits AI context files (CLAUDE.md, .cursorrules, SKILL.md, etc.) against the actual codebase. Detects stale references, vague instructions, missing coverage, and structural issues.
+
+**Features:**
+- Discovers all AI context files across tools (Claude Code, Cursor, Copilot, Windsurf)
+- Parallel analysis with 3 specialized subagents (reference validity, coverage, clarity)
+- Scored quality report (Accuracy, Coverage, Clarity → Overall grade A-F)
+- Severity-ranked findings with actionable remediation
+- Handles repos with zero context files (suggests what to create)
+
+**Example:**
+```bash
+/context-audit                          # Full audit of all context files
+/context-audit focus on CLAUDE.md only  # Audit specific file
 ```
 
 #### linear-cli
@@ -595,6 +612,9 @@ skills/                      # Repository root
 │   │   └── SKILL.md
 │   ├── command-creator/
 │   │   └── SKILL.md
+│   ├── context-audit/
+│   │   ├── SKILL.md
+│   │   └── CHECKLISTS.md
 │   ├── deepnote-notebook/
 │   │   └── SKILL.md
 │   ├── github-dependabot-report/
