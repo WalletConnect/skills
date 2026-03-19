@@ -1,0 +1,48 @@
+name: Weekly Security Queue Report
+
+on:
+  # schedule:
+  #   - cron: '0 9 * * 1' # Every Monday at 9 AM UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  report:
+    name: Generate & Deliver Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: skills/hubspot-security-queue
+        run: npm install
+
+      - name: Generate & deliver security queue report
+        env:
+          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_SECURITY_QUEUE }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node skills/hubspot-security-queue/scripts/run-report.mjs \
+            skills/hubspot-security-queue
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-queue-report
+          path: ./report.md
+          retention-days: 90
