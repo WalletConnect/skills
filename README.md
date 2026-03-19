@@ -16,7 +16,7 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (15 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
+- **Skills**: Custom slash commands that extend Claude's capabilities (16 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
 - **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
@@ -61,6 +61,7 @@ ls ~/.claude/commands/
 | `context-audit` | Audit AI context files for accuracy, coverage, and clarity against the actual codebase | `/context-audit` |
 | `deepnote-notebook` | Edit Deepnote .ipynb notebooks correctly by syncing the deepnote_source metadata field | Use when editing Deepnote notebooks |
 | `github-dependabot-report` | Generates Dependabot security alerts report for WalletConnect GitHub orgs, grouped by team | `/github-dependabot-report` |
+| `hubspot-security-queue` | Summarizes HubSpot security ticket pipeline — queue status, unassigned tickets, AI triage | `/hubspot-security-queue` |
 | `license-compliance` | Scan project dependencies for license compliance across 9 ecosystems. Supports org-wide sweeps | `/license-compliance [--repo org/repo]` |
 | `linear-cli` | Manages Linear issues via CLI - view, start, create, update issues and PRs | `/linear` or when managing Linear issues |
 | `operational-readiness` | Production readiness checklist for services - validates observability, CI/CD, security, infrastructure | `/operational-readiness` |
@@ -149,6 +150,21 @@ Generates a Dependabot security alerts report for walletconnect, reown-com, and 
 - Groups vulnerabilities by team/topic ownership
 - Severity-ranked findings
 - Tracks remediation status
+
+#### hubspot-security-queue
+Summarizes the HubSpot security ticket pipeline queue. Shows total tickets, breakdown by stage, unassigned tickets needing attention, and AI triage status from the `security-pipeline-triage-worker`.
+
+**Features:**
+- Pipeline stage breakdown with ticket counts
+- Unassigned ticket identification
+- AI triage coverage summary (in-scope, out-of-scope, needs review, not triaged)
+- Owner name and stage name resolution
+
+**Example:**
+```bash
+/hubspot-security-queue
+# Generates report → Summarizes queue status → Offers Slack delivery
+```
 
 #### license-compliance
 Scans project dependencies for license compliance across 9 ecosystems. Classifies licenses as permissive, weak copyleft, or restrictive. Supports monorepos, remote GitHub repos, and org-wide scanning with tracker-based resume.
@@ -618,6 +634,10 @@ skills/                      # Repository root
 │   ├── deepnote-notebook/
 │   │   └── SKILL.md
 │   ├── github-dependabot-report/
+│   │   ├── SKILL.md
+│   │   ├── package.json
+│   │   └── scripts/
+│   ├── hubspot-security-queue/
 │   │   ├── SKILL.md
 │   │   ├── package.json
 │   │   └── scripts/
