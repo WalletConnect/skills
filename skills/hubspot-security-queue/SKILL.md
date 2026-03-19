@@ -37,7 +37,7 @@ python3 ~/.claude/skills/hubspot-security-queue/scripts/security_queue_report.py
 ```
 
 `--output` is **required** — always provide a path. Suggested defaults:
-- Local: `~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Home/chief-of-staff/reports/security-ops/YYYY-MM-DD-security-queue.md`
+- Local: `~/reports/security-ops/YYYY-MM-DD-security-queue.md`
 - CI: `./report.md`
 
 If the user doesn't specify an output path, use the local default with today's date.
@@ -51,7 +51,7 @@ If the user doesn't specify an output path, use the local default with today's d
 ```bash
 # Default pipeline (--output is required)
 python3 ~/.claude/skills/hubspot-security-queue/scripts/security_queue_report.py \
-  --output ~/Library/Mobile\ Documents/com~apple~CloudDocs/Documents/Home/chief-of-staff/reports/security-ops/2026-03-19-security-queue.md
+  --output ~/reports/security-ops/2026-03-19-security-queue.md
 
 # Custom pipeline ID
 python3 ~/.claude/skills/hubspot-security-queue/scripts/security_queue_report.py \
