@@ -45,10 +45,10 @@ python3 ~/.claude/skills/github-dependabot-report/scripts/dependabot_report.py -
 ```
 
 `--output` is **required** — always provide a path. Suggested defaults:
-- Local: `~/chief-of-staff/reports/security-ops/YYYY-MM-DD-dependabot-alerts.md`
+- Local: `./YYYY-MM-DD-dependabot-alerts.md`
 - CI: `./report.md`
 
-If the user doesn't specify an output path, use the local default with today's date.
+If the user doesn't specify an output path, use `./YYYY-MM-DD-dependabot-alerts.md` with today's date.
 
 2. Read and present a summary of the generated report.
 
@@ -59,7 +59,7 @@ If the user doesn't specify an output path, use the local default with today's d
 ```bash
 # All orgs, critical+high only (--output is required)
 python3 ~/.claude/skills/github-dependabot-report/scripts/dependabot_report.py \
-  --output ~/chief-of-staff/reports/security-ops/2026-02-23-dependabot-alerts.md
+  --output ./2026-02-23-dependabot-alerts.md
 
 # Include medium severity
 python3 ~/.claude/skills/github-dependabot-report/scripts/dependabot_report.py \
