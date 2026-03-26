@@ -30,6 +30,12 @@ Generate a markdown report of critical and high severity Dependabot alerts acros
   - walletconnectfoundation
 - Python 3.10+
 
+### 🔑 CI token requirements
+
+The CI workflow uses `DEPENDABOT_REPORT_GH_PAT` — this **must be a classic PAT**, not a fine-grained token. Fine-grained PATs are scoped to a single GitHub organization, but this report scans 3 orgs (`walletconnect`, `reown-com`, `walletconnectfoundation`). Only classic PATs work across multiple orgs.
+
+Required classic PAT scope: `security_events` (read-only access to Dependabot alerts across all orgs the token owner belongs to).
+
 ## Default workflow
 
 1. Run the report generator script, passing all user arguments through:
