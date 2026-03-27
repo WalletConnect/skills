@@ -105,7 +105,8 @@ def extract_team_topics(topics: list[str]) -> list[str]:
 def generate_report(
     orgs: list[str],
     include_medium: bool = False,
-    output_path: Path = None
+    output_path: Path = None,
+    skip_min_check: bool = False
 ) -> str:
     """Generate the full Dependabot report."""
 
@@ -124,18 +125,29 @@ def generate_report(
 
     all_alerts = []
     failed_orgs = []
+    empty_orgs = []
     for org in orgs:
         success, org_alerts = get_org_alerts(org, include_medium)
         if not success:
             failed_orgs.append(org)
+        elif len(org_alerts) == 0:
+            empty_orgs.append(org)
         all_alerts.extend(org_alerts)
 
     if failed_orgs:
         print(f"\nERROR: Failed to fetch alerts from: {', '.join(failed_orgs)}", file=sys.stderr)
-        if len(failed_orgs) == len(orgs):
-            print("All organizations failed. This is likely a token permissions issue.", file=sys.stderr)
-            print("The GH_TOKEN needs 'security_events' scope (classic) or Dependabot alerts read access (fine-grained).", file=sys.stderr)
-            sys.exit(1)
+        print("The GH_TOKEN needs 'security_events' scope (classic) or Dependabot alerts read access (fine-grained).", file=sys.stderr)
+        print("Aborting: partial security data is worse than no data.", file=sys.stderr)
+        sys.exit(1)
+
+    if not skip_min_check and empty_orgs:
+        print(
+            f"\nERROR: Zero alerts returned for: {', '.join(empty_orgs)}",
+            file=sys.stderr
+        )
+        print("Each org should have at least 1 alert. This likely indicates a token permissions issue or API failure.", file=sys.stderr)
+        print("Use --no-min-check to bypass this check if the count is genuinely zero.", file=sys.stderr)
+        sys.exit(1)
 
     print(f"\nTotal alerts across all orgs: {len(all_alerts)}")
 
@@ -370,6 +382,11 @@ def main():
         required=True,
         help="Output file path (required)"
     )
+    parser.add_argument(
+        "--no-min-check",
+        action="store_true",
+        help="Disable the minimum alert count sanity check"
+    )
 
     args = parser.parse_args()
 
@@ -378,7 +395,8 @@ def main():
     generate_report(
         orgs=orgs,
         include_medium=args.include_medium,
-        output_path=args.output
+        output_path=args.output,
+        skip_min_check=args.no_min_check
     )
 
 
