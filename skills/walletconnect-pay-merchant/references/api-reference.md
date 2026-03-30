@@ -10,7 +10,6 @@ All endpoints use unified authentication:
 |--------|-------------|
 | `Api-Key` | Customer API key |
 | `Merchant-Id` | Your merchant ID |
-| `WCP-Version` | API version (`2026-02-19.preview`) |
 
 ---
 
@@ -26,7 +25,6 @@ Creates a new payment and returns a gateway URL for the customer.
 Content-Type: application/json
 Api-Key: <CUSTOMER_API_KEY>
 Merchant-Id: <MERCHANT_ID>
-WCP-Version: 2026-02-19.preview
 Sdk-Name: <optional-app-name>
 Sdk-Version: <optional-version>
 Sdk-Platform: <optional-platform>
@@ -76,7 +74,7 @@ Poll this endpoint to track payment progress.
 
 ### Request headers
 
-Same as Create Payment (`Api-Key`, `Merchant-Id`, `WCP-Version`).
+Same as Create Payment (`Api-Key`, `Merchant-Id`).
 
 ### Response
 
@@ -114,7 +112,6 @@ async function waitForPayment(paymentId: string): Promise<string> {
       headers: {
         "Api-Key": CUSTOMER_API_KEY,
         "Merchant-Id": MERCHANT_ID,
-        "WCP-Version": "2026-02-19.preview",
       },
     });
     const { status, isFinal, pollInMs } = await res.json();
@@ -155,7 +152,7 @@ Fetch historical payment records. Uses the same unified authentication headers.
 
 ### Request headers
 
-Same as Create Payment (`Api-Key`, `Merchant-Id`, `WCP-Version`).
+Same as Create Payment (`Api-Key`, `Merchant-Id`).
 
 ### Query parameters
 

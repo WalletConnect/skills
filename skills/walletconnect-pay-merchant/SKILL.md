@@ -80,7 +80,6 @@ const response = await fetch(`${API_URL}/merchant/payment`, {
     "Content-Type": "application/json",
     "Api-Key": CUSTOMER_API_KEY,
     "Merchant-Id": MERCHANT_ID,
-    "WCP-Version": "2026-02-19.preview",
   },
   body: JSON.stringify({
     referenceId: "order-12345",
@@ -135,7 +134,6 @@ async function pollStatus(paymentId: string): Promise<string> {
       headers: {
         "Api-Key": CUSTOMER_API_KEY,
         "Merchant-Id": MERCHANT_ID,
-        "WCP-Version": "2026-02-19.preview",
       },
     });
     const { status, isFinal, pollInMs } = await res.json();
@@ -213,7 +211,6 @@ All API requests (payment creation, status, and transaction history) use the sam
 ```
 Api-Key: <CUSTOMER_API_KEY>
 Merchant-Id: <MERCHANT_ID>
-WCP-Version: 2026-02-19.preview
 Content-Type: application/json
 ```
 
@@ -229,7 +226,6 @@ Sdk-Platform: web
 
 - [ ] Amount is in **cents** as a string (e.g., `"500"` for $5.00, not `"5.00"`)
 - [ ] `referenceId` is unique per payment (UUID or prefixed timestamp)
-- [ ] `WCP-Version` header is set to `2026-02-19.preview`
 - [ ] `Api-Key` and `Merchant-Id` headers are set on every request (payments and transactions)
 - [ ] Status polling uses `pollInMs` from the response (not hardcoded)
 - [ ] All 6 payment statuses are handled in UI
@@ -265,7 +261,6 @@ async function createPaymentWithQR(amountUsd: number) {
       "Content-Type": "application/json",
       "Api-Key": process.env.WALLETCONNECT_CUSTOMER_API_KEY!,
       "Merchant-Id": process.env.WALLETCONNECT_MERCHANT_ID!,
-      "WCP-Version": "2026-02-19.preview",
     },
     body: JSON.stringify({
       referenceId: randomUUID(),
@@ -296,7 +291,6 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
       "Api-Key": process.env.WALLETCONNECT_CUSTOMER_API_KEY!,
       "Merchant-Id": process.env.WALLETCONNECT_MERCHANT_ID!,
-      "WCP-Version": "2026-02-19.preview",
     },
     body: JSON.stringify({
       referenceId: `order-${Date.now()}`,
@@ -319,7 +313,7 @@ async function sendPaymentViaWhatsApp(phoneNumber: string, amountUsd: number) {
   const cents = Math.round(amountUsd * 100).toString();
   const paymentRes = await fetch(`${API_URL}/merchant/payment`, {
     method: "POST",
-    headers: { "Api-Key": API_KEY, "Merchant-Id": MERCHANT_ID, "WCP-Version": "2026-02-19.preview", "Content-Type": "application/json" },
+    headers: { "Api-Key": API_KEY, "Merchant-Id": MERCHANT_ID, "Content-Type": "application/json" },
     body: JSON.stringify({ referenceId: `wa-${Date.now()}`, amount: { value: cents, unit: "iso4217/USD" } }),
   });
   const { paymentId, gatewayUrl } = await paymentRes.json();
@@ -333,7 +327,7 @@ async function sendPaymentViaWhatsApp(phoneNumber: string, amountUsd: number) {
   while (status === "requires_action" || status === "processing") {
     await new Promise((r) => setTimeout(r, 3000));
     const statusRes = await fetch(`${API_URL}/merchant/payment/${paymentId}/status`, {
-      headers: { "Api-Key": API_KEY, "Merchant-Id": MERCHANT_ID, "WCP-Version": "2026-02-19.preview" },
+      headers: { "Api-Key": API_KEY, "Merchant-Id": MERCHANT_ID },
     });
     const data = await statusRes.json();
     status = data.status;

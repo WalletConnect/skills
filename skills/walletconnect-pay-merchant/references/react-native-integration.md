@@ -22,10 +22,16 @@
 npm install @tanstack/react-query zustand react-native-qrcode-svg
 ```
 
-For Expo:
+For secure API key storage (recommended):
 ```bash
-npx expo install expo-secure-store expo-crypto
+# Expo
+npx expo install expo-secure-store
+
+# Bare React Native (alternative)
+npm install react-native-keychain
 ```
+
+Store API keys using `expo-secure-store` (Expo) or `react-native-keychain` (bare RN) rather than AsyncStorage or environment variables bundled into the app. This ensures credentials are encrypted at rest on the device.
 
 ---
 
@@ -193,7 +199,6 @@ export function getApiHeaders(merchantId: string, customerApiKey: string): Recor
   return {
     "Api-Key": customerApiKey,
     "Merchant-Id": merchantId,
-    "WCP-Version": "2026-02-19.preview",
     "Sdk-Name": "pos-device",
     "Sdk-Version": "1.0.0",
     "Sdk-Platform": "react-native",

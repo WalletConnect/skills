@@ -53,7 +53,6 @@ function paymentHeaders(): Record<string, string> {
     "Content-Type": "application/json",
     "Api-Key": CUSTOMER_API_KEY,
     "Merchant-Id": MERCHANT_ID,
-    "WCP-Version": "2026-02-19.preview",
   };
 }
 
