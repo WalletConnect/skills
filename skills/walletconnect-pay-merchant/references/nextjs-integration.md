@@ -28,10 +28,9 @@ No dedicated SDK is needed — the Merchant API is a standard REST API called fr
 ## Environment Variables
 
 ```env
-REOWN_API_URL=<api-base-url>
-REOWN_MERCHANT_ID=<your-merchant-id>
-REOWN_CUSTOMER_API_KEY=<your-customer-api-key>
-REOWN_MERCHANT_PORTAL_API_KEY=<your-portal-api-key>
+WALLETCONNECT_API_URL=<api-base-url>
+WALLETCONNECT_MERCHANT_ID=<your-merchant-id>
+WALLETCONNECT_CUSTOMER_API_KEY=<your-customer-api-key>
 ```
 
 All keys are server-side only (no `NEXT_PUBLIC_` prefix) — they are never exposed to the browser.
@@ -40,15 +39,14 @@ All keys are server-side only (no `NEXT_PUBLIC_` prefix) — they are never expo
 
 ## Server-Side Payment Client
 
-Create a shared module for Reown API calls:
+Create a shared module for WalletConnect API calls:
 
 ```typescript
-// src/lib/reown.ts
+// src/lib/walletconnect.ts
 
-const API_URL = process.env.REOWN_API_URL!;
-const MERCHANT_ID = process.env.REOWN_MERCHANT_ID!;
-const CUSTOMER_API_KEY = process.env.REOWN_CUSTOMER_API_KEY!;
-const MERCHANT_PORTAL_API_KEY = process.env.REOWN_MERCHANT_PORTAL_API_KEY!;
+const API_URL = process.env.WALLETCONNECT_API_URL!;
+const MERCHANT_ID = process.env.WALLETCONNECT_MERCHANT_ID!;
+const CUSTOMER_API_KEY = process.env.WALLETCONNECT_CUSTOMER_API_KEY!;
 
 function paymentHeaders(): Record<string, string> {
   return {
@@ -92,30 +90,37 @@ export async function getPaymentStatus(paymentId: string) {
 
 export async function getTransactions(params?: {
   status?: string;
+  sortBy?: string;
+  sortDir?: string;
   limit?: number;
   cursor?: string;
+  startTs?: string;
+  endTs?: string;
 }) {
   const searchParams = new URLSearchParams();
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
+  if (params?.sortDir) searchParams.set("sortDir", params.sortDir);
   if (params?.limit) searchParams.set("limit", params.limit.toString());
   if (params?.cursor) searchParams.set("cursor", params.cursor);
+  if (params?.startTs) searchParams.set("startTs", params.startTs);
+  if (params?.endTs) searchParams.set("endTs", params.endTs);
 
   const qs = searchParams.toString();
-  const url = `${API_URL}/merchants/${MERCHANT_ID}/payments${qs ? `?${qs}` : ""}`;
+  const url = `${API_URL}/merchants/payments${qs ? `?${qs}` : ""}`;
 
   const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": MERCHANT_PORTAL_API_KEY,
-    },
+    headers: paymentHeaders(),
   });
 
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Transactions fetch failed: ${res.status}`);
+    throw new Error(data.message || `Transactions fetch failed: ${res.status}`);
   }
 
-  return res.json(); // { data: PaymentRecord[], next_cursor }
+  return data; // { data: PaymentRecord[], nextCursor }
 }
 ```
 
@@ -126,7 +131,7 @@ export async function getTransactions(params?: {
 ```typescript
 // src/app/api/payments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createPayment } from "@/lib/reown";
+import { createPayment } from "@/lib/walletconnect";
 
 export async function POST(req: NextRequest) {
   try {
@@ -157,7 +162,7 @@ export async function POST(req: NextRequest) {
 ```typescript
 // src/app/api/payments/[paymentId]/status/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getPaymentStatus } from "@/lib/reown";
+import { getPaymentStatus } from "@/lib/walletconnect";
 
 export async function GET(
   _req: NextRequest,
@@ -296,7 +301,7 @@ export default function PaymentPage() {
 
 | Pattern | Implementation |
 |---------|---------------|
-| Keep API keys secure | All Reown calls in API routes (no `NEXT_PUBLIC_` prefix) |
+| Keep API keys secure | All WalletConnect calls in API routes (no `NEXT_PUBLIC_` prefix) |
 | Client-side status updates | Poll `/api/payments/[id]/status` from React with `useEffect` |
 | Amount conversion | `Math.round(dollars * 100).toString()` — avoids floating-point issues |
 | QR code delivery | Generate PNG server-side with `qrcode`, serve as buffer or data URL |

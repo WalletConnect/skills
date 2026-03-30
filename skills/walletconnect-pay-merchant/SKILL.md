@@ -1,13 +1,13 @@
 ---
 name: walletconnect-pay-merchant
-description: Guides developers through creating USDC payment requests using the Reown/WalletConnect Pay Merchant API. Use when creating payments, generating payment links or QR codes, polling payment status, fetching transaction history, or integrating merchant payment acceptance into React Native, Next.js, web, or server-side applications.
+description: Guides developers through creating USDC payment requests using the WalletConnect Pay Merchant API. Use when creating payments, generating payment links or QR codes, polling payment status, fetching transaction history, or integrating merchant payment acceptance into React Native, Next.js, web, or server-side applications.
 ---
 
 # WalletConnect Pay — Merchant Integration
 
 ## Goal
 
-Help developers create USDC payment requests using the Reown Payment API. The integration enables merchants to generate payment links (and QR codes), send them to customers, poll for payment status, and retrieve transaction history. Customers pay from any WalletConnect-compatible wallet.
+Help developers create USDC payment requests using the WalletConnect Payment API. The integration enables merchants to generate payment links (and QR codes), send them to customers, poll for payment status, and retrieve transaction history. Customers pay from any WalletConnect-compatible wallet.
 
 ## When to use
 
@@ -46,11 +46,10 @@ Jump to the right reference:
 
 ## Prerequisites
 
-1. **Reown Merchant Account** — obtain credentials from the Reown dashboard
+1. **WalletConnect Merchant Account** — obtain credentials from the WalletConnect dashboard
 2. **Merchant ID** — identifies your merchant account
-3. **Customer API Key** — authenticates payment creation and status requests
-4. **Merchant Portal API Key** — authenticates transaction history requests
-5. **Node.js 18+** (for server-side or Next.js integrations)
+3. **Customer API Key** — authenticates all API requests (payment creation, status, and transaction history)
+4. **Node.js 18+** (for server-side or Next.js integrations)
 
 ## Universal Payment Flow
 
@@ -159,19 +158,20 @@ async function pollStatus(paymentId: string): Promise<string> {
 
 ### Step 4 — Fetch transaction history
 
-Use a separate API key (`Merchant-Portal-Api-Key`) to list past transactions.
+Uses the same unified authentication headers as payment creation.
 
 ```typescript
 const res = await fetch(
-  `${API_URL}/merchants/${MERCHANT_ID}/payments?limit=50&sort_by=date&sort_dir=desc`,
+  `${API_URL}/merchants/payments?limit=50&sortBy=date&sortDir=desc`,
   {
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": MERCHANT_PORTAL_API_KEY,
+      "Api-Key": CUSTOMER_API_KEY,
+      "Merchant-Id": MERCHANT_ID,
     },
   }
 );
-const { data, next_cursor } = await res.json();
+const { data, nextCursor } = await res.json();
 ```
 
 **Query parameters:**
@@ -179,43 +179,41 @@ const { data, next_cursor } = await res.json();
 | Param | Description |
 |-------|-------------|
 | `status` | Filter by status (can repeat for multiple) |
-| `sort_by` | `"date"` or `"amount"` |
-| `sort_dir` | `"asc"` or `"desc"` |
+| `sortBy` | `"date"` or `"amount"` |
+| `sortDir` | `"asc"` or `"desc"` |
 | `limit` | Max results per page |
-| `cursor` | Pagination cursor from `next_cursor` |
+| `cursor` | Pagination cursor from `nextCursor` |
+| `startTs` | ISO 8601 start date filter |
+| `endTs` | ISO 8601 end date filter |
 
 **Transaction record fields:**
 
+The response uses nested camelCase DTOs:
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `payment_id` | string | Payment identifier |
-| `reference_id` | string | Your reference ID |
+| `paymentId` | string | Payment identifier |
+| `referenceId` | string | Your reference ID |
 | `status` | string | Payment status |
-| `fiat_amount` | number | Amount in cents |
-| `fiat_currency` | string | `"iso4217/USD"` |
-| `token_amount` | string | Raw token amount (e.g., `"100000"` for 0.10 USDC) |
-| `token_caip19` | string | Token identifier in CAIP-19 format |
-| `chain_id` | string | Blockchain chain ID |
-| `tx_hash` | string | Blockchain transaction hash |
-| `wallet_name` | string | Wallet used for payment |
-| `buyer_caip10` | string | Buyer's address in CAIP-10 format |
-| `created_at` | string | ISO 8601 timestamp |
+| `merchantId` | string | Your merchant ID |
+| `isTerminal` | boolean | Whether status is final |
+| `fiatAmount` | AmountWithDisplay | Fiat amount with `value` (cents string), `unit`, and optional `display` |
+| `tokenAmount` | AmountWithDisplay | Token amount with `value`, `unit`, and optional `display` (includes `formatted`, `iconUrl`, `assetSymbol`) |
+| `buyer` | BuyerInfo | Buyer info with `accountCaip10`, `accountProviderName`, `accountProviderIcon` |
+| `transaction` | TransactionInfo | Chain info with `networkId`, `hash`, `nonce` |
+| `settlement` | SettlementInfo | Settlement info with `status`, `txHash` |
+| `createdAt` | string | ISO 8601 creation timestamp |
+| `lastUpdatedAt` | string | ISO 8601 last update timestamp |
+| `settledAt` | string | ISO 8601 settlement timestamp |
 
 ## Authentication
 
-All payment creation and status requests require these headers:
+All API requests (payment creation, status, and transaction history) use the same unified headers:
 
 ```
 Api-Key: <CUSTOMER_API_KEY>
 Merchant-Id: <MERCHANT_ID>
 WCP-Version: 2026-02-19.preview
-Content-Type: application/json
-```
-
-Transaction history uses a different auth:
-
-```
-x-api-key: <MERCHANT_PORTAL_API_KEY>
 Content-Type: application/json
 ```
 
@@ -232,13 +230,13 @@ Sdk-Platform: web
 - [ ] Amount is in **cents** as a string (e.g., `"500"` for $5.00, not `"5.00"`)
 - [ ] `referenceId` is unique per payment (UUID or prefixed timestamp)
 - [ ] `WCP-Version` header is set to `2026-02-19.preview`
-- [ ] `Api-Key` and `Merchant-Id` headers are set on every payment request
+- [ ] `Api-Key` and `Merchant-Id` headers are set on every request (payments and transactions)
 - [ ] Status polling uses `pollInMs` from the response (not hardcoded)
 - [ ] All 6 payment statuses are handled in UI
 - [ ] `expiresAt` is checked — warn user if payment is about to expire
-- [ ] Transaction history uses `x-api-key` (not `Api-Key`)
 - [ ] API keys are server-side only — never exposed to browser clients
 - [ ] QR codes are generated from `gatewayUrl` (not `paymentId`)
+- [ ] Transaction response uses camelCase fields (`paymentId`, `fiatAmount`, `nextCursor`)
 
 ## Common errors
 
@@ -246,10 +244,9 @@ Sdk-Platform: web
 |-------|-------|-----|
 | `401 Unauthorized` | Missing or invalid `Api-Key` | Verify `CUSTOMER_API_KEY` is correct |
 | `400 Bad Request` | Invalid amount format | Ensure `amount.value` is a string of cents |
-| `Merchant ID not configured` | Empty `Merchant-Id` header | Set `REOWN_MERCHANT_ID` env var |
+| `Merchant ID not configured` | Empty `Merchant-Id` header | Set `WALLETCONNECT_MERCHANT_ID` env var |
 | Payment stuck in `requires_action` | Customer hasn't opened the link | Resend the `gatewayUrl` or generate a new payment |
 | `expired` status | Customer took too long | Create a new payment and resend |
-| Transaction history returns `403` | Wrong API key | Use `MERCHANT_PORTAL_API_KEY` for `/merchants/` endpoints |
 
 ## Examples
 
@@ -262,12 +259,12 @@ import { randomUUID } from "crypto";
 async function createPaymentWithQR(amountUsd: number) {
   const cents = Math.round(amountUsd * 100).toString();
 
-  const res = await fetch(`${process.env.REOWN_API_URL}/merchant/payment`, {
+  const res = await fetch(`${process.env.WALLETCONNECT_API_URL}/merchant/payment`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Api-Key": process.env.REOWN_CUSTOMER_API_KEY!,
-      "Merchant-Id": process.env.REOWN_MERCHANT_ID!,
+      "Api-Key": process.env.WALLETCONNECT_CUSTOMER_API_KEY!,
+      "Merchant-Id": process.env.WALLETCONNECT_MERCHANT_ID!,
       "WCP-Version": "2026-02-19.preview",
     },
     body: JSON.stringify({
@@ -293,12 +290,12 @@ export async function POST(req: NextRequest) {
   const { amount } = await req.json();
   const cents = Math.round(parseFloat(amount) * 100).toString();
 
-  const res = await fetch(`${process.env.REOWN_API_URL}/merchant/payment`, {
+  const res = await fetch(`${process.env.WALLETCONNECT_API_URL}/merchant/payment`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Api-Key": process.env.REOWN_CUSTOMER_API_KEY!,
-      "Merchant-Id": process.env.REOWN_MERCHANT_ID!,
+      "Api-Key": process.env.WALLETCONNECT_CUSTOMER_API_KEY!,
+      "Merchant-Id": process.env.WALLETCONNECT_MERCHANT_ID!,
       "WCP-Version": "2026-02-19.preview",
     },
     body: JSON.stringify({
@@ -354,5 +351,5 @@ async function sendPaymentViaWhatsApp(phoneNumber: string, amountUsd: number) {
 3. **Activation** — "I need to generate a QR code for a payment request and send it via WhatsApp."
 4. **Non-activation** — "How do I accept a WC Pay payment in my wallet app?" (use Wallet Pay SDK)
 5. **Edge case** — "What format should the amount be in?" (Answer: string of cents, e.g., `"500"` for $5.00)
-6. **Edge case** — "Why does my transaction history return 403?" (Answer: use `MERCHANT_PORTAL_API_KEY` with `x-api-key` header, not `Api-Key`)
+6. **Edge case** — "Why does my transaction history return 401?" (Answer: use the same `Api-Key` and `Merchant-Id` headers as payment endpoints)
 7. **Troubleshooting** — "My payment is stuck in requires_action." (Answer: customer hasn't opened the link yet; resend or create a new payment)

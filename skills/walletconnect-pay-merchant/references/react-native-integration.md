@@ -38,7 +38,6 @@ Store merchant credentials securely. Never hardcode API keys.
 EXPO_PUBLIC_API_URL=<api-base-url>
 EXPO_PUBLIC_DEFAULT_MERCHANT_ID=<your-merchant-id>
 EXPO_PUBLIC_DEFAULT_CUSTOMER_API_KEY=<your-customer-api-key>
-EXPO_PUBLIC_MERCHANT_PORTAL_API_KEY=<your-portal-api-key>
 ```
 
 ---
@@ -75,26 +74,56 @@ export interface PaymentStatusResponse {
   pollInMs: number;
 }
 
+export interface DisplayAmount {
+  formatted?: string;
+  assetSymbol?: string;
+  decimals?: number;
+  iconUrl?: string;
+  networkName?: string;
+}
+
+export interface AmountWithDisplay {
+  unit?: string;
+  value?: string;
+  display?: DisplayAmount;
+}
+
+export interface BuyerInfo {
+  accountCaip10?: string;
+  accountProviderName?: string;
+  accountProviderIcon?: string;
+}
+
+export interface TransactionInfo {
+  networkId?: string;
+  hash?: string;
+  nonce?: number;
+}
+
+export interface SettlementInfo {
+  status?: string;
+  txHash?: string;
+}
+
 export interface PaymentRecord {
-  payment_id: string;
-  reference_id: string;
+  paymentId: string;
+  merchantId?: string;
+  referenceId?: string;
   status: PaymentStatus;
-  merchant_id: string;
-  is_terminal: boolean;
-  wallet_name: string;
-  tx_hash?: string;
-  fiat_amount?: number;
-  fiat_currency?: string;
-  token_amount?: string;
-  token_caip19?: string;
-  chain_id?: string;
-  created_at?: string;
-  buyer_caip10?: string;
+  isTerminal: boolean;
+  fiatAmount?: AmountWithDisplay;
+  tokenAmount?: AmountWithDisplay;
+  buyer?: BuyerInfo;
+  transaction?: TransactionInfo;
+  settlement?: SettlementInfo;
+  createdAt?: string;
+  lastUpdatedAt?: string;
+  settledAt?: string;
 }
 
 export interface TransactionsResponse {
   data: PaymentRecord[];
-  next_cursor?: string | null;
+  nextCursor?: string | null;
 }
 ```
 
@@ -231,11 +260,13 @@ export interface GetTransactionsOptions {
   sortDir?: "asc" | "desc";
   limit?: number;
   cursor?: string;
+  startTs?: string;
+  endTs?: string;
 }
 
 export async function getTransactions(
   merchantId: string,
-  portalApiKey: string,
+  apiKey: string,
   options: GetTransactionsOptions = {}
 ): Promise<TransactionsResponse> {
   const params = new URLSearchParams();
@@ -244,27 +275,28 @@ export async function getTransactions(
     const statuses = Array.isArray(options.status) ? options.status : [options.status];
     statuses.forEach((s) => params.append("status", s));
   }
-  if (options.sortBy) params.append("sort_by", options.sortBy);
-  if (options.sortDir) params.append("sort_dir", options.sortDir);
+  if (options.sortBy) params.append("sortBy", options.sortBy);
+  if (options.sortDir) params.append("sortDir", options.sortDir);
   if (options.limit) params.append("limit", options.limit.toString());
   if (options.cursor) params.append("cursor", options.cursor);
+  if (options.startTs) params.append("startTs", options.startTs);
+  if (options.endTs) params.append("endTs", options.endTs);
 
   const qs = params.toString();
-  const url = `${process.env.EXPO_PUBLIC_API_URL}/merchants/${merchantId}/payments${qs ? `?${qs}` : ""}`;
+  const url = `${process.env.EXPO_PUBLIC_API_URL}/merchants/payments${qs ? `?${qs}` : ""}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": portalApiKey,
-    },
+    headers: getApiHeaders(merchantId, apiKey),
   });
 
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to fetch transactions: ${response.status}`);
+    throw new Error(data.message || `Failed to fetch transactions: ${response.status}`);
   }
 
-  return response.json();
+  return data;
 }
 ```
 
@@ -360,36 +392,40 @@ export function usePaymentStatus(
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getTransactions, GetTransactionsOptions } from "./transactions";
 
-type FilterType = "all" | "completed" | "failed" | "pending";
+type FilterType = "all" | "pending" | "completed" | "failed" | "expired" | "cancelled";
 
 function filterToStatusArray(filter: FilterType): string[] | undefined {
   switch (filter) {
-    case "completed": return ["succeeded"];
-    case "failed": return ["failed", "expired", "cancelled"];
     case "pending": return ["requires_action", "processing"];
+    case "completed": return ["succeeded"];
+    case "failed": return ["failed"];
+    case "expired": return ["expired"];
+    case "cancelled": return ["cancelled"];
     default: return undefined;
   }
 }
 
 export function useTransactions(
   merchantId: string,
-  portalApiKey: string,
-  options: { enabled?: boolean; filter?: FilterType } = {}
+  apiKey: string,
+  options: { enabled?: boolean; filter?: FilterType; startTs?: string; endTs?: string } = {}
 ) {
-  const { enabled = true, filter = "all" } = options;
+  const { enabled = true, filter = "all", startTs, endTs } = options;
 
   const query = useInfiniteQuery({
-    queryKey: ["transactions", filter],
+    queryKey: ["transactions", filter, startTs, endTs],
     queryFn: ({ pageParam }) =>
-      getTransactions(merchantId, portalApiKey, {
+      getTransactions(merchantId, apiKey, {
         status: filterToStatusArray(filter),
         sortBy: "date",
         sortDir: "desc",
         limit: 20,
         cursor: pageParam as string | undefined,
+        startTs,
+        endTs,
       }),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
@@ -422,9 +458,12 @@ export function exceedsU64Max(dollarAmount: string): boolean {
   return BigInt(whole + fractional) > BigInt("18446744073709551615");
 }
 
-/** Format cents to display string: 500 → "$5.00" */
-export function formatFiatAmount(amountCents: number, currency = "USD"): string {
-  const value = (amountCents / 100).toLocaleString(undefined, {
+/** Format cents string to display string: "500" → "$5.00" */
+export function formatFiatAmount(amountCents?: string, currency = "USD"): string {
+  if (!amountCents) return "-";
+  const parsed = parseInt(amountCents, 10);
+  if (isNaN(parsed)) return "-";
+  const value = (parsed / 100).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -570,7 +609,7 @@ export default function App({ children }) {
 | | React Native | Next.js |
 |---|---|---|
 | API calls | Direct from device (native fetch) | Via API routes (keys server-side) |
-| Credential storage | `expo-secure-store` (encrypted) | `.env.local` (server-side only) |
+| Credential storage | `expo-secure-store` (encrypted on device) | `.env.local` (server-side only) |
 | QR code | `react-native-qrcode-svg` component | `qrcode` package (PNG buffer) |
 | Polling | `@tanstack/react-query` `refetchInterval` | `useEffect` + `setTimeout` |
 | State management | `zustand` with `react-native-mmkv` | React state or server components |

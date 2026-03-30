@@ -4,12 +4,13 @@
 
 ## Authentication
 
-Two authentication modes:
+All endpoints use unified authentication:
 
-| Endpoint group | Headers |
-|---------------|---------|
-| Payment creation & status | `Api-Key`, `Merchant-Id`, `WCP-Version` |
-| Transaction history | `x-api-key` |
+| Header | Description |
+|--------|-------------|
+| `Api-Key` | Customer API key |
+| `Merchant-Id` | Your merchant ID |
+| `WCP-Version` | API version (`2026-02-19.preview`) |
 
 ---
 
@@ -148,26 +149,25 @@ Empty object `{}`.
 
 ## Endpoint 4 — List Transactions
 
-**`GET /merchants/{merchantId}/payments`**
+**`GET /merchants/payments`**
 
-Fetch historical payment records. Uses a different API key.
+Fetch historical payment records. Uses the same unified authentication headers.
 
 ### Request headers
 
-```
-Content-Type: application/json
-x-api-key: <MERCHANT_PORTAL_API_KEY>
-```
+Same as Create Payment (`Api-Key`, `Merchant-Id`, `WCP-Version`).
 
 ### Query parameters
 
 | Param | Type | Description |
 |-------|------|-------------|
 | `status` | string | Filter by status (repeat for multiple values) |
-| `sort_by` | string | `"date"` or `"amount"` |
-| `sort_dir` | string | `"asc"` or `"desc"` |
+| `sortBy` | string | `"date"` or `"amount"` |
+| `sortDir` | string | `"asc"` or `"desc"` |
 | `limit` | number | Max results per page |
 | `cursor` | string | Pagination cursor from previous response |
+| `startTs` | string | ISO 8601 start date filter |
+| `endTs` | string | ISO 8601 end date filter |
 
 ### Response
 
@@ -175,24 +175,50 @@ x-api-key: <MERCHANT_PORTAL_API_KEY>
 {
   "data": [
     {
-      "payment_id": "pay_abc123",
-      "reference_id": "order-12345",
+      "paymentId": "pay_abc123",
+      "referenceId": "order-12345",
       "status": "succeeded",
-      "merchant_id": "merchant_xyz",
-      "is_terminal": true,
-      "wallet_name": "MetaMask",
-      "tx_hash": "0xabc...",
-      "fiat_amount": 500,
-      "fiat_currency": "iso4217/USD",
-      "token_amount": "500000",
-      "token_caip19": "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      "chain_id": "eip155:8453",
-      "buyer_caip10": "eip155:8453:0xBuyerAddress",
-      "created_at": "2026-03-25T10:30:00Z",
-      "confirmed_at": "2026-03-25T10:30:15Z"
+      "merchantId": "merchant_xyz",
+      "isTerminal": true,
+      "fiatAmount": {
+        "value": "500",
+        "unit": "iso4217/USD",
+        "display": {
+          "formatted": "$5.00",
+          "assetSymbol": "USD"
+        }
+      },
+      "tokenAmount": {
+        "value": "500000",
+        "unit": "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "display": {
+          "formatted": "0.50 USDC",
+          "assetSymbol": "USDC",
+          "decimals": 6,
+          "iconUrl": "https://...",
+          "networkName": "Base"
+        }
+      },
+      "buyer": {
+        "accountCaip10": "eip155:8453:0xBuyerAddress",
+        "accountProviderName": "MetaMask",
+        "accountProviderIcon": "https://..."
+      },
+      "transaction": {
+        "networkId": "eip155:8453",
+        "hash": "0xabc...",
+        "nonce": 42
+      },
+      "settlement": {
+        "status": "settled",
+        "txHash": "0xdef..."
+      },
+      "createdAt": "2026-03-25T10:30:00Z",
+      "lastUpdatedAt": "2026-03-25T10:30:15Z",
+      "settledAt": "2026-03-25T10:30:20Z"
     }
   ],
-  "next_cursor": "cursor_abc123"
+  "nextCursor": "cursor_abc123"
 }
 ```
 
@@ -200,21 +226,19 @@ x-api-key: <MERCHANT_PORTAL_API_KEY>
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `payment_id` | string | Payment identifier |
-| `reference_id` | string | Your reference ID from creation |
+| `paymentId` | string | Payment identifier |
+| `referenceId` | string | Your reference ID from creation |
 | `status` | string | Final payment status |
-| `merchant_id` | string | Your merchant ID |
-| `is_terminal` | boolean | Whether status is final |
-| `wallet_name` | string | Name of wallet used |
-| `tx_hash` | string | Blockchain transaction hash |
-| `fiat_amount` | number | Amount in cents |
-| `fiat_currency` | string | ISO 4217 currency (`"iso4217/USD"`) |
-| `token_amount` | string | Raw token amount (USDC has 6 decimals: `"500000"` = 0.50 USDC) |
-| `token_caip19` | string | Token in CAIP-19 format: `eip155:{chainId}/erc20:{address}` |
-| `chain_id` | string | Blockchain identifier |
-| `buyer_caip10` | string | Buyer address in CAIP-10 format |
-| `created_at` | string | ISO 8601 creation timestamp |
-| `confirmed_at` | string | ISO 8601 confirmation timestamp |
+| `merchantId` | string | Your merchant ID |
+| `isTerminal` | boolean | Whether status is final |
+| `fiatAmount` | AmountWithDisplay | Fiat amount — `value` (cents string), `unit` (e.g. `"iso4217/USD"`), `display` |
+| `tokenAmount` | AmountWithDisplay | Token amount — `value` (raw), `unit` (CAIP-19), `display` (includes `formatted`, `iconUrl`, `assetSymbol`, `decimals`, `networkName`) |
+| `buyer` | BuyerInfo | `accountCaip10`, `accountProviderName`, `accountProviderIcon` |
+| `transaction` | TransactionInfo | `networkId`, `hash`, `nonce` |
+| `settlement` | SettlementInfo | `status`, `txHash` |
+| `createdAt` | string | ISO 8601 creation timestamp |
+| `lastUpdatedAt` | string | ISO 8601 last update timestamp |
+| `settledAt` | string | ISO 8601 settlement timestamp |
 
 ---
 
@@ -234,7 +258,7 @@ All errors return JSON with a `message` field:
 |-------------|-------------|-----|
 | 400 | Invalid request body (bad amount, missing fields) | Check `amount.value` is cents string |
 | 401 | Missing or invalid API key | Verify `Api-Key` header |
-| 403 | Wrong API key for endpoint | Use `x-api-key` for transaction history |
+| 403 | Insufficient permissions | Verify API key has merchant access |
 | 404 | Payment not found | Check `paymentId` is correct |
 | 408 | Request timeout | Retry with exponential backoff |
 
