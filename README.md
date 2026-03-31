@@ -16,7 +16,7 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (16 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
+- **Skills**: Custom slash commands that extend Claude's capabilities (17 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, supply-chain security, terraform plan review, and more)
 - **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
@@ -68,6 +68,7 @@ ls ~/.claude/commands/
 | `repo-ai-setup` | Set up AI agent docs (AGENTS.md), CLAUDE.md symlink, and auto-review workflow | `/repo-ai-setup` |
 | `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
+| `supply-chain-security` | Detects supply-chain attack patterns — invisible Unicode (Glassworm), malicious install hooks, eval decoders, lockfile anomalies | `/supply-chain-security` |
 | `terraform-plan-review` | Analyze Terraform plan output — resource counts, alignment check, risk assessment, recommendations | `/terraform-plan-review [plan-file]` |
 | `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
@@ -296,6 +297,28 @@ Produces usable Skill packages optimized for discoverability, correctness, conci
 - Information architecture design
 - Frontmatter validation
 - Evaluation prompt generation
+
+#### supply-chain-security
+Detects supply-chain attack patterns in code changes, informed by the Glassworm campaign (March 2026) which compromised 151+ GitHub repositories using invisible Unicode payloads.
+
+**Detection Capabilities:**
+- Invisible Unicode obfuscation (PUA variation selectors, zero-width characters)
+- Glassworm decoder pattern (`eval` + `Buffer.from` + `codePointAt` with hex ranges)
+- Malicious `preinstall`/`postinstall`/`preuninstall` hooks in `package.json`
+- Lockfile anomalies (changes without corresponding `package.json` updates)
+- Byte-count cross-checks for hidden content
+- PR review red flags (force-pushed commits, AI-generated cover changes)
+
+**Includes:**
+- Detection commands (hex dump, zero-width grep, byte-count anomaly checks)
+- Emergency response protocol for compromised machines
+
+**Example:**
+```bash
+/supply-chain-security
+# "Check this PR for supply-chain attack indicators"
+# → Scans for invisible Unicode, malicious hooks, eval decoders, lockfile anomalies
+```
 
 #### terraform-plan-review
 Analyzes Terraform plan output with the rigor of a staff DevOps engineer. Compares planned changes against code diff, surfaces unexpected changes, assesses risk, and produces a structured review report — replicating CI-based plan review quality locally for immediate feedback.
@@ -661,6 +684,9 @@ skills/                      # Repository root
 │   │   └── EVALUATIONS.md
 │   ├── skill-writing/
 │   │   └── SKILL.md
+│   ├── supply-chain-security/
+│   │   ├── SKILL.md
+│   │   └── EVALUATIONS.md
 │   ├── terraform-plan-review/
 │   │   ├── SKILL.md
 │   │   ├── REFERENCE.md
