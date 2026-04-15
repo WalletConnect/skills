@@ -330,11 +330,10 @@ WalletConnect Pay (WCP) architectural design principles for payment state owners
 
 **Principles Covered:**
 1. Single Source of Truth — canonical table is the only authority
-2. No Local Payment State — don't maintain local copies for decisions
-3. Events Over Direct Access — consume Kinesis events, don't query Core's DB
-4. Idempotent Operations — safe to replay every state change
-5. Compensation Over Rollback — on-chain txs can't be reversed
-6. Ordered State Transitions — no skipping states in the lifecycle
+2. Events as the Integration Layer — consume Kinesis events for state changes, display, analytics, and product logic
+3. Idempotent Operations — safe to replay every state change
+4. Compensation Over Rollback — on-chain txs can't be reversed
+5. Ordered State Transitions — no skipping states in the lifecycle
 
 **Ownership Boundaries:**
 - Pay Core: payment creation, status transitions, fund movements

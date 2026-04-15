@@ -10,11 +10,10 @@ Architectural guidelines for WalletConnect Pay services. Read [references/princi
 ## Core Rules
 
 1. **Single Source of Truth** - Canonical table is the only authority for payment state. All other stores are derived.
-2. **No Local Payment State** - Services don't maintain their own copy of payment state for decisions. Query Pay Core or consume events.
-3. **Events Over Direct Access** - React to typed domain events on Kinesis, don't query Pay Core's database directly.
-4. **Idempotent Operations** - Every state-changing operation must be safe to replay. Use idempotency keys, version checks, event deduplication.
-5. **Compensation Over Rollback** - On-chain txs can't be reversed. Failed steps get compensated, not rolled back.
-6. **Ordered State Transitions** - `requires_action -> processing -> succeeded/failed/expired`. No skipping states. Optimistic locking on every transition.
+2. **Events as the Integration Layer** - Services learn about state changes through events on Kinesis, not by querying Pay Core's database. Events carry full payment state — use them for display, analytics, and product logic. Event data can be briefly stale; Core validates all mutations at its boundary. Consume fields as Core publishes them, don't derive from raw fields.
+3. **Idempotent Operations** - Every state-changing operation must be safe to replay. Use idempotency keys, version checks, event deduplication.
+4. **Compensation Over Rollback** - On-chain txs can't be reversed. Failed steps get compensated, not rolled back.
+5. **Ordered State Transitions** - `requires_action -> processing -> succeeded/failed/expired`. No skipping states. Optimistic locking on every transition.
 
 ## Ownership Boundaries
 
@@ -26,7 +25,7 @@ Architectural guidelines for WalletConnect Pay services. Read [references/princi
 
 Check for these anti-patterns:
 - Writing directly to canonical table (bypass validation) -> use Pay Core API
-- Maintaining local payment status (race conditions) -> react to Pay Core events
+- Maintaining local payment status or deriving fields from raw data -> consume events as Core publishes them
 - Polling canonical table (schema coupling) -> use event stream
 - Skipping state transitions -> enforce lifecycle order
 - Attempting rollback of on-chain operations -> use compensation

@@ -4,7 +4,7 @@
 
 Defines who owns payment state, how it moves, and how other services interact with it. Every design doc and service integration must follow these principles. If a design violates one, it needs a documented exception or a redesign.
 
-> The event system (Section 3) is not yet built. Sections that reference events describe the target architecture. Until then, services use Pay Core's API for current state or the current event stream.
+> The event system (Section 2) is not yet built. Sections that reference events describe the target architecture. Until then, services use Pay Core's API for current state or the current event stream.
 
 ## 1. Single Source of Truth
 
@@ -12,17 +12,7 @@ Core payments canonical table (e.g. `prod-pay-v2-canonical-sc-eu`) is the author
 
 Data not yet in canonical doesn't change the payment's state. A tx hash observed onchain but not yet written to canonical doesn't change a payment's status.
 
-## 2. No Local Payment State
-
-Services consume payment events for their own purposes (analytics, notifications, dashboards). They don't maintain their own copy of payment state for decision-making.
-
-| OK | Not OK |
-|---|---|
-| Store `payment.succeeded` to compute revenue metrics | Cache payment status to decide whether to send a webhook |
-| Store payment ID as a foreign key | Store amount + status + tx_hash as "your view" of the payment |
-| Query Pay Core API when you need current state | Build a local state machine that tracks transitions independently |
-
-## 3. Events Over Direct Access
+## 2. Events as the Integration Layer
 
 Services learn about payment state changes through the event stream, not by querying Pay Core's database.
 
@@ -30,11 +20,20 @@ Services learn about payment state changes through the event stream, not by quer
 Pay Core --> Canonical Table --> DDB Stream --> Transformer --> Kinesis --> Consumer
 ```
 
-Use **events** when: reacting to state changes, building derived data stores, triggering side effects (notifications, webhooks).
+Use **events** when: reacting to state changes, building derived data stores (ClickHouse, dashboards), triggering side effects (notifications, webhooks), making UI decisions (showing a refund button, filtering payment lists).
 
-Use **Pay Core API** when: you need current state on-demand, you need to request a state transition.
+Use **Pay Core API** when: you need to request a state transition or mutation.
 
-## 4. Idempotent Migrations
+### Using event data
+
+Events carry full payment state and are meant to be consumed. Use them for display, analytics, and product logic like deciding whether to show a refund button based on `is_refundable`.
+
+Two things to keep in mind:
+
+- Event data can be briefly stale. Core validates all mutations at its boundary, so stale reads lead to rejected API calls, not bad state. If MX shows a refund button based on a stale event and the user clicks it, Core rejects the `/internal/refund` call. No harm done.
+- If you need a field to make a decision (like `is_refundable`), consume it from the event as Core publishes it. Don't derive it from raw fields with your own logic, because Core's definition of that field may change.
+
+## 3. Idempotent Migrations
 
 Every operation that changes payment state must be safe to replay.
 
@@ -44,7 +43,7 @@ Mechanisms:
 - Settlement records keyed by payment ID (duplicate settlement is a no-op)
 - `event_id` for consumer deduplication
 
-## 5. Compensation Over Rollback
+## 4. Compensation Over Rollback
 
 On-chain transactions can't be reversed. When a step fails after a prior step succeeded, the path is compensation, not rollback.
 
@@ -55,7 +54,7 @@ On-chain transactions can't be reversed. When a step fails after a prior step su
 | Confirmation times out | Monitor chain, reconcile async |
 | Settlement batch crashes | Retry next batch (idempotent) |
 
-## 6. Ordered State Transitions
+## 5. Ordered State Transitions
 
 Pay Core enforces that transitions follow the defined lifecycle. Skipping states is not allowed.
 
