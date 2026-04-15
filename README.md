@@ -16,7 +16,7 @@ cd skills
 ## What's Inside
 
 This repository contains:
-- **Skills**: Custom slash commands that extend Claude's capabilities (16 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
+- **Skills**: Custom slash commands that extend Claude's capabilities (17 skills including `/worktree`, Linear CLI, AWS limits review, operational readiness, security auditing, terraform plan review, and more)
 - **Commands**: Prompt templates and workflows for common development tasks (25 commands)
 
 Skills live at the repository root (`skills/`) to match the [official Anthropic skills structure](https://github.com/anthropics/skills) and support the [npx skills API](https://skills.sh) (`npx skills add <owner>/<skill>`). A symlink at `.claude/skills` maintains backwards compatibility with existing scripts.
@@ -70,6 +70,7 @@ ls ~/.claude/commands/
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
 | `terraform-plan-review` | Analyze Terraform plan output — resource counts, alignment check, risk assessment, recommendations | `/terraform-plan-review [plan-file]` |
 | `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
+| `wcp-design-principles` | WalletConnect Pay technical design principles — payment state ownership, event-driven patterns, service boundaries | Use when designing/reviewing WCP services |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
@@ -322,6 +323,28 @@ Analyzes Terraform plan output with the rigor of a staff DevOps engineer. Compar
 /terraform-plan-review plan_output.txt  # Analyze specific file
 # → Produces structured report with resource counts, alignment check,
 #   risk assessment, detailed changes, and recommendations
+```
+
+#### wcp-design-principles
+WalletConnect Pay (WCP) architectural design principles for payment state ownership, event-driven integration, and service boundaries. Based on the WCP Tech Design Principles document.
+
+**Principles Covered:**
+1. Single Source of Truth — canonical table is the only authority
+2. No Local Payment State — don't maintain local copies for decisions
+3. Events Over Direct Access — consume Kinesis events, don't query Core's DB
+4. Idempotent Operations — safe to replay every state change
+5. Compensation Over Rollback — on-chain txs can't be reversed
+6. Ordered State Transitions — no skipping states in the lifecycle
+
+**Ownership Boundaries:**
+- Pay Core: payment creation, status transitions, fund movements
+- Product services (MX, BX, PoS): merchant management, refund scheduling, dashboards
+
+**Example:**
+```bash
+/wcp-design-principles
+# "I'm designing a new notification service that needs to know payment status"
+# → Guides you to consume events, not query canonical table directly
 ```
 
 #### worktree
@@ -665,6 +688,9 @@ skills/                      # Repository root
 │   │   ├── SKILL.md
 │   │   ├── REFERENCE.md
 │   │   └── EVALUATIONS.md
+│   ├── wcp-design-principles/
+│   │   ├── SKILL.md
+│   │   └── references/
 │   └── worktree/
 │       └── SKILL.md
 ├── .claude/
