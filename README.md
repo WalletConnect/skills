@@ -70,6 +70,7 @@ ls ~/.claude/commands/
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
 | `terraform-plan-review` | Analyze Terraform plan output — resource counts, alignment check, risk assessment, recommendations | `/terraform-plan-review [plan-file]` |
 | `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
+| `walletconnect-pay-headless` | Build a fully branded, self-hosted crypto checkout on the WalletConnect Pay Headless SDK (`@walletconnect/pay-*`) in React/Next.js or vanilla JS | `/walletconnect-pay-headless` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
 
 ### Skill Details
