@@ -1,137 +1,97 @@
 # Vanilla JavaScript Integration
 
-The framework-neutral path: `createPaymentController` from `@walletconnect/pay-state` + a manual `subscribe` + imperative render. Same runtime, same seams, same `snapshot.state` contract as React — no `@walletconnect/pay-react`.
+The framework-neutral path: `createPaymentController` from `@walletconnect/pay-state` + a manual `subscribe` + your own render. Same runtime, same seams, same `snapshot.state` contract as React — no `@walletconnect/pay-react`.
 
-Prerequisites, install, env vars, and the server proxy are in [server-proxy.md](server-proxy.md). Do that first. For vanilla, expose the project ID under your toolchain's client env (e.g. `VITE_APPKIT_PROJECT_ID`).
+Do the server proxy first ([server-proxy.md](server-proxy.md)). The snapshot states and actions are in the main [SKILL.md](../SKILL.md).
 
-## Step 1 — AppKit (zero-config)
+> The snippets show **how to drive the controller**. How you render and route is yours — see the [reference example](https://github.com/WalletConnect/walletconnect-pay-examples/tree/main/gateway/headless-checkout) for a full framework-neutral UI.
 
-`appkit.ts` — one factory call. `createPayAppKit` constructs the AppKit instance, the Wagmi/Solana adapters, and the WC-owned network set for you, in headless mode.
+## 1. AppKit (zero-config)
 
 ```ts
 import { createPayAppKit } from '@walletconnect/pay-appkit'
 
 export const payAppKit = createPayAppKit({
   projectId: import.meta.env.VITE_APPKIT_PROJECT_ID ?? '',
-  metadata: {
-    name: 'Acme Pay (vanilla)',
-    description: 'Headless checkout — vanilla JS',
-    url: window.location.origin,
-    icons: []
-  }
+  metadata: { name: 'Acme Pay', description: 'Checkout', url: window.location.origin, icons: [] }
 })
 ```
 
-> **Escape hatch:** if you need direct control over AppKit, you can construct Reown's `createAppKit({ adapters, networks, projectId, features: { headless: true }, metadata })` yourself and hand the instance to `createAppKitWalletList` / `createAppKitWalletProvider`. `createPayAppKit` is the zero-config wrapper over exactly that.
+`createPayAppKit` constructs the AppKit instance, the Wagmi/Solana adapters, and the WC-owned network set for you, in headless mode. (If you need direct control, you can build Reown's own `createAppKit({ …, features: { headless: true } })` and hand the instance to `createAppKitWalletList` instead — `createPayAppKit` is the zero-config wrapper over exactly that.)
 
-## Step 2 — Controller + wallet list + render loop
+## 2. Controller + wallet list + render loop
 
-`main.ts`
+The seams are identical to React: `createHttpTransport({ baseUrl })`, `browserClock`, `createAppKitSigner(wallet)`. `createAppKitWalletList` gives you the picker (list/search/pagination/QR) and exposes `walletList.wallet` — the `WalletProvider` seam the machine drives.
 
 ```ts
 import { createHttpTransport } from '@walletconnect/pay-core'
 import { createAppKitSigner, createAppKitWalletList } from '@walletconnect/pay-appkit'
 import { browserClock, createPaymentController } from '@walletconnect/pay-state'
-
 import { payAppKit } from './appkit'
-import { createCheckout } from './render' // your imperative renderer
 
-function resolvePaymentId(): string {
-  const fromPath = window.location.pathname.replace(/^\/+/, '').split('/')[0]
-  if (fromPath) return decodeURIComponent(fromPath)
-  return new URLSearchParams(window.location.search).get('paymentId') ?? 'pay_demo_123'
-}
-
-const paymentId = resolvePaymentId()
-
-// Framework-neutral wallet-list controller: fetches the wallet list, search + pagination,
-// pairing QR URI, and exposes `walletList.wallet` — the WalletProvider seam the machine drives.
-const walletList = createAppKitWalletList(payAppKit, {
-  isMobile: window.matchMedia('(max-width: 768px)').matches,
-  wcPayUrl: window.location.href
-})
+const walletList = createAppKitWalletList(payAppKit, { wcPayUrl: window.location.href })
 const wallet = walletList.wallet
 
 const controller = createPaymentController({
   paymentId,
   wallet,
   seams: {
-    transport: createHttpTransport({ baseUrl: '/api/wcp' }),
+    transport: createHttpTransport({ baseUrl: '/api/wcp' }), // must match your proxy mount
     clock: browserClock,
     signer: createAppKitSigner(wallet)
   }
 })
 
-const mount = document.getElementById('checkout')!
-const checkout = createCheckout({ mount, controller, walletList, paymentId })
+// Re-render on every machine transition AND on wallet-list changes (search, pagination, QR).
+controller.subscribe(() => render(controller.getSnapshot()))
+walletList.subscribe(() => render(controller.getSnapshot()))
 
-// Re-render on every machine transition …
-controller.subscribe(() => checkout.render(controller.getSnapshot()))
-// … and on wallet-list changes (search results, pagination, QR URI arriving).
-walletList.subscribe(() => checkout.render(controller.getSnapshot()))
-
-controller.start()               // begin the machine (loads the payment)
-void walletList.fetchWallets()   // populate the picker
-checkout.render(controller.getSnapshot())
+controller.start()             // boot the machine (loads the payment)
+void walletList.fetchWallets() // populate the picker
+render(controller.getSnapshot())
 ```
 
-## The controller surface
+## 3. Render per `snapshot.state`
+
+Your `render(snapshot)` branches on the same 17 states as React (see the [SKILL.md](../SKILL.md) table) and calls controller actions. The shape:
+
+```ts
+import { isFailureState } from '@walletconnect/pay-state'
+
+function render(s) {
+  if (isFailureState(s.state)) return renderFailure(s.state, s.signingError)
+  switch (s.state) {
+    case 'ReadyForWallet':
+    case 'ConnectingWallet': return renderWalletPicker(walletList) // → controller.connectWallet(item, ns)
+    case 'OptionsReady':     return renderOptions(s.options)       // → controller.selectOption(opt, rank)
+    case 'InformationCapture': return renderKyc(s.collectData?.fields) // → controller.submitInfoCapture(data)
+    case 'OptionSelected':
+    case 'RequiresApproval':
+      return renderConfirm(s.requiresApproval ? 'Approve & pay' : 'Confirm', () => controller.confirmSelection())
+    case 'Succeeded':        return renderSuccess(s.payment)
+    default:                 return renderSpinner(s.state) // Initializing / LoadingOptions / Awaiting… / Waiting…
+  }
+}
+```
+
+## Controller surface
 
 ```ts
 interface PaymentController {
   getSnapshot(): PaymentSnapshot
-  subscribe(listener: () => void): () => void   // returns an unsubscribe fn
+  subscribe(listener: () => void): () => void  // returns an unsubscribe fn
   start(): void
-  destroy(): void
-  // domain actions — same set as the React hook:
-  connectWallet(wallet, namespace?, options?): void
-  disconnectWallet(namespace?): void
-  selectOption(option, rank): void
-  confirmSelection(): void
-  unselectOption(): void
-  submitInfoCapture(data): void
-  navigateBack(): void
+  destroy(): void                              // call on teardown to stop polling
+  // same named actions as the React hook:
+  connectWallet, disconnectWallet, selectOption, confirmSelection, unselectOption, submitInfoCapture, navigateBack
 }
 ```
 
-`createPaymentController` options match the React hook: `{ paymentId, seams, wallet, initialPayment?, signingTimeoutMs?, onMachineEvent? }`.
+Options match the React hook: `{ paymentId, seams, wallet, initialPayment?, signingTimeoutMs?, onMachineEvent? }`.
 
-## Imperative render, keyed off `snapshot.state`
+## Things worth knowing
 
-Your `render(snapshot)` branches on the same 17 states as the React switch (see the main SKILL table). The load-bearing branches:
-
-```ts
-import { isFailureState, type PaymentSnapshot } from '@walletconnect/pay-state'
-import { formatAmount } from '@walletconnect/pay-core'
-
-function render(s: PaymentSnapshot) {
-  const state = s.state
-
-  if (isFailureState(state)) return renderFailure(state, s.signingError)
-  if (state === 'Succeeded') return renderSuccess(`Paid ${formatAmount(s.payment?.amount)}`)
-
-  if (state === 'ReadyForWallet' || state === 'ConnectingWallet') return renderWalletPicker(s)
-  if (state === 'LoadingOptions') return renderSpinner('Finding payment options…')
-  if (state === 'NoOptions')      return renderEmpty('No payment options for this wallet.')
-  if (state === 'OptionsReady')   return renderOptions(s.options) // → controller.selectOption(opt, rank)
-
-  if (state === 'InformationCapture')
-    return renderKycForm(s.collectData?.fields) // → controller.submitInfoCapture(data)
-
-  if (state === 'AwaitingWalletApproval') return renderSpinner('Approve in your wallet…')
-  if (state === 'WaitingForConfirmation') return renderSpinner('Submitting payment…')
-
-  // OptionSelected | RequiresApproval → the Confirm CTA
-  const building = (s.selectedOption?.actions ?? []).some(a => a.type === 'build')
-  const label = building ? 'Preparing payment…' : s.requiresApproval ? 'Approve & pay' : 'Confirm'
-  return renderConfirm(label, () => controller.confirmSelection())
-}
-```
-
-## Key rules
-
-- **Subscribe to both** the controller *and* the wallet-list controller; the picker updates (search, pagination, QR URI) come from the latter.
-- **Call `controller.start()`** to boot the machine, and `walletList.fetchWallets()` to fill the picker.
-- **`createHttpTransport({ baseUrl: '/api/wcp' })`, `browserClock`, `createAppKitSigner(wallet)`** — the seams are identical to React.
-- **`controller.destroy()`** when tearing down (SPA route change) to stop polling and release listeners.
+- **Subscribe to both** the controller and the wallet-list controller — picker updates come from the latter.
+- **`controller.start()`** boots the machine; **`walletList.fetchWallets()`** fills the picker.
+- **`controller.destroy()`** on teardown (SPA route change) to stop status polling and release listeners.
 - If you rebuild the DOM on every transition, preserve the search input's value/caret/scroll yourself.

@@ -1,30 +1,24 @@
 # React / Next.js Integration
 
-The recommended path. You render `<PayAppKitProvider>` once near the root, then drive a single `usePaymentSession` hook and render per `snapshot.state`. Wallet connection is **zero-config** — the SDK owns the entire Reown AppKit / Wagmi / Solana setup; you never touch `@reown/*`, `wagmi`, or `viem`.
+The recommended path: render `<PayAppKitProvider>` once, drive a single `usePaymentSession` hook, and render per `snapshot.state`. Wallet connection is zero-config — the SDK owns the Reown AppKit / Wagmi / Solana setup; you never touch `@reown/*`, `wagmi`, or `viem`.
 
-Prerequisites, install, env vars, and the server proxy are in [server-proxy.md](server-proxy.md). Do that first.
+Do the server proxy first ([server-proxy.md](server-proxy.md)). The snapshot states and actions are in the main [SKILL.md](../SKILL.md).
 
-## Step 1 — Provider (once, near the root)
+> The snippets below show **how to call the SDK**. Where you mount the provider, how you route to the checkout, and how you style each state are your choices — this is one arrangement, not a required one. For a complete branded UI, read the [reference example](https://github.com/WalletConnect/walletconnect-pay-examples/tree/main/gateway/headless-checkout).
 
-`components/providers.tsx`
+## 1. Provider
+
+Mount `<PayAppKitProvider>` once, above wherever your checkout renders. It owns AppKit's client-only construction, the `WagmiProvider` + `QueryClientProvider` tree, and an SSR-safe context — in **headless mode** (no built-in modal; you render your own picker).
 
 ```tsx
 'use client'
-
 import { PayAppKitProvider } from '@walletconnect/pay-appkit/react'
 
-const projectId = process.env.NEXT_PUBLIC_APPKIT_PROJECT_ID ?? ''
-
-export function Providers({ children }: { children: React.ReactNode }) {
+export function PayProvider({ children }: { children: React.ReactNode }) {
   return (
     <PayAppKitProvider
-      projectId={projectId}
-      metadata={{
-        name: 'Acme Pay',
-        description: 'Headless checkout',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://example.com',
-        icons: []
-      }}
+      projectId={process.env.NEXT_PUBLIC_APPKIT_PROJECT_ID ?? ''}
+      metadata={{ name: 'Acme Pay', description: 'Checkout', url: 'https://example.com', icons: [] }}
     >
       {children}
     </PayAppKitProvider>
@@ -32,44 +26,33 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 ```
 
-`<PayAppKitProvider>` owns AppKit's client-only construction, the `WagmiProvider` + `QueryClientProvider` tree, and an SSR-safe context. It builds AppKit in **headless mode** — no built-in modal; you render your own wallet picker.
+## 2. Assemble the seams and drive the session
 
-## Step 2 — Checkout (seams + session)
-
-`components/checkout.tsx`
+The three seams: `transport` (→ your proxy), `clock` (`browserClock`), `signer` (`createAppKitSigner(wallet)`). `useAppKitWalletProvider` turns the AppKit instance into the `WalletProvider` seam **and** a ready-made picker (list, search, pagination, pairing QR `wcUri`).
 
 ```tsx
 'use client'
-
 import { createHttpTransport } from '@walletconnect/pay-core'
 import { createAppKitSigner } from '@walletconnect/pay-appkit'
-import {
-  getPayAppKitInstance,
-  useAppKitWalletProvider,
-  usePayAppKit,
-  type WalletListItem
-} from '@walletconnect/pay-appkit/react'
-import { browserClock, isFailureState, type PaymentOptionExtended } from '@walletconnect/pay-state'
+import { getPayAppKitInstance, useAppKitWalletProvider, usePayAppKit } from '@walletconnect/pay-appkit/react'
+import { browserClock } from '@walletconnect/pay-state'
 import { usePaymentSession } from '@walletconnect/pay-react'
 import { useMemo } from 'react'
 
 export function Checkout({ paymentId }: { paymentId: string }) {
-  // The provider constructs AppKit asynchronously; read the instance once it's ready.
+  // The provider builds AppKit asynchronously — read the instance only once ready.
   const { isReady } = usePayAppKit()
   const appKit = isReady ? getPayAppKitInstance() : undefined
 
-  // The WalletProvider seam + a ready-made picker (list, search, pagination, QR URI).
-  const {
-    wallet, wallets, wcUri, getWcUri,
-    searchQuery, setSearchQuery, hasMore, loadMore, isFetchingWallets
-  } = useAppKitWalletProvider(appKit, {
-    wcPayUrl: typeof window !== 'undefined' ? window.location.href : undefined
-  })
+  const { wallet, wallets, wcUri /* + search / pagination helpers */ } =
+    useAppKitWalletProvider(appKit, {
+      wcPayUrl: typeof window !== 'undefined' ? window.location.href : undefined
+    })
 
-  // Assemble the runtime seams. The signer is one built-in call.
+  // Memoize on [wallet] — rebuilding this object every render tears down the session.
   const seams = useMemo(
     () => ({
-      transport: createHttpTransport({ baseUrl: '/api/wcp' }),
+      transport: createHttpTransport({ baseUrl: '/api/wcp' }), // must match your proxy mount
       clock: browserClock,
       signer: createAppKitSigner(wallet)
     }),
@@ -78,126 +61,73 @@ export function Checkout({ paymentId }: { paymentId: string }) {
 
   const {
     snapshot,
-    connectWallet,
-    disconnectWallet,
-    selectOption,
-    confirmSelection,
-    submitInfoCapture
+    connectWallet, disconnectWallet,
+    selectOption, confirmSelection, submitInfoCapture
   } = usePaymentSession({ paymentId, seams, wallet })
 
-  return <div>{renderState()}</div>
-
-  function renderState() {
-    switch (snapshot.state) {
-      case 'Initializing':
-        return <Spinner label="Loading payment…" />
-
-      case 'ReadyForWallet':
-      case 'ConnectingWallet':
-        return (
-          <WalletPicker
-            wallets={wallets}
-            wcUri={wcUri}
-            searchQuery={searchQuery}
-            onSearch={setSearchQuery}
-            hasMore={hasMore}
-            onLoadMore={loadMore}
-            isFetching={isFetchingWallets}
-            connecting={snapshot.state === 'ConnectingWallet'}
-            onConnect={(w: WalletListItem) =>
-              // Multichain wallets (>1 namespace) usually prompt a network choice first.
-              w.namespaces.length > 1 ? openNamespaceModal(w) : connectWallet(w, w.namespaces[0])
-            }
-          />
-        )
-
-      case 'LoadingOptions':
-        return <Spinner label="Finding payment options…" />
-
-      case 'OptionsReady':
-        return (
-          <OptionList
-            options={snapshot.options}
-            onSelect={(opt: PaymentOptionExtended, rank: number) => selectOption(opt, rank)}
-          />
-        )
-
-      case 'NoOptions':
-        return <Empty label="No payment options for this wallet." onSwitch={() => disconnectWallet()} />
-
-      case 'InformationCapture':
-        // Build the form from the Engine's requirements — never hardcode fields.
-        return <KycForm fields={snapshot.collectData?.fields} onSubmit={submitInfoCapture} />
-
-      case 'OptionSelected':
-      case 'RequiresApproval':
-        return (
-          <>
-            {snapshot.signingError && (
-              <p>Signing failed ({snapshot.signingError.code}): {snapshot.signingError.message}</p>
-            )}
-            <button onClick={() => confirmSelection()}>
-              {snapshot.requiresApproval ? 'Approve & pay' : 'Confirm'}
-            </button>
-          </>
-        )
-
-      case 'AwaitingWalletApproval':
-        return <Spinner label="Approve in your wallet…" />
-
-      case 'WaitingForConfirmation':
-        return <Spinner label="Submitting payment…" />
-
-      case 'Succeeded':
-        return <Success payment={snapshot.payment} />
-
-      default:
-        // Failed | PaymentExpired | PaymentCancelled | InvalidPayment | SanctionedUser
-        return <Failure state={snapshot.state} error={snapshot.signingError} />
-    }
-  }
+  return <YourUI snapshot={snapshot} /* pass the actions + wallet picker data down */ />
 }
 ```
 
-That is a full gateway: connect → options → (optional KYC) → confirm → sign → settle, all driven by the runtime. You only render and call actions.
+That's the whole integration. Everything past this point is your UI reading `snapshot` and calling actions.
 
-## Wiring it up
+## 3. Render per `snapshot.state`
+
+A `switch` on `snapshot.state` is the natural shape. This is abbreviated — the full state list and the action for each is the table in [SKILL.md](../SKILL.md):
 
 ```tsx
-// app/layout.tsx
-import { Providers } from '@/components/providers'
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html><body><Providers>{children}</Providers></body></html>
-}
+switch (snapshot.state) {
+  case 'ReadyForWallet':
+  case 'ConnectingWallet':
+    // your wallet picker → connectWallet(item, item.namespaces[0])
+    return <WalletPicker wallets={wallets} wcUri={wcUri} onConnect={connectWallet} />
 
-// app/pay/[id]/page.tsx
-import { Checkout } from '@/components/checkout'
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  return <Checkout paymentId={id} />
+  case 'OptionsReady':
+    return <OptionList options={snapshot.options} onSelect={selectOption} />
+
+  case 'InformationCapture':
+    // build the form from the Engine's requirements — never hardcode fields
+    return <KycForm fields={snapshot.collectData?.fields} onSubmit={submitInfoCapture} />
+
+  case 'OptionSelected':
+  case 'RequiresApproval':
+    return (
+      <button onClick={confirmSelection}>
+        {snapshot.requiresApproval ? 'Approve & pay' : 'Confirm'}
+      </button>
+    )
+
+  case 'Succeeded':
+    return <Success payment={snapshot.payment} />
+
+  // Initializing / LoadingOptions / AwaitingWalletApproval / WaitingForConfirmation → spinners
+  // Failed / PaymentExpired / PaymentCancelled / InvalidPayment / SanctionedUser → failure screen
+  //   group these five with isFailureState(snapshot.state)
+  default:
+    return <StatusView state={snapshot.state} error={snapshot.signingError} />
 }
 ```
 
-## Key rules
+## Things worth knowing
 
-- **`useMemo` the seams** on `[wallet]`. Rebuilding the seams object every render tears down and recreates the session.
-- **Gate on `isReady`** before calling `getPayAppKitInstance()` — the provider builds AppKit asynchronously.
-- **Build the KYC form from `snapshot.collectData.fields`.** The Engine decides what's required per option.
-- **`requiresApproval`** flips the CTA between "Approve & pay" (two-phase, e.g. Permit2) and "Confirm". Both call `confirmSelection()`.
+- **Memoize `seams` on `[wallet]`.** This is the most common mistake — an un-memoized seams object recreates the session on every render.
+- **Gate on `usePayAppKit().isReady`** before `getPayAppKitInstance()`; the provider builds AppKit asynchronously.
+- **Build the KYC form from `snapshot.collectData.fields`** — the Engine decides what's required per option; don't hardcode.
+- **`requiresApproval`** flips the confirm CTA between "Approve & pay" (two-phase, e.g. Permit2) and "Confirm". Both call `confirmSelection()`.
 - **A plain user rejection** routes to `PaymentCancelled` and does *not* set `signingError`; only non-rejection signing failures do.
-- **Once connected**, `disconnectWallet(namespace?)` drops one namespace or all of them.
+- **Multichain wallets** (more than one namespace) usually prompt a network choice first; pass the chosen `namespace` to `connectWallet(item, namespace)`.
 
 ## `usePaymentSession` options
 
 ```ts
 usePaymentSession({
   paymentId,
-  seams,               // { transport, clock, signer?, telemetry? }
-  wallet,              // the WalletProvider seam
-  initialPayment,      // optional: skip the first fetch if you already have the intent
-  signingTimeoutMs,    // optional
-  onMachineEvent       // optional: read-only analytics observer (event, snapshot)
+  seams,             // { transport, clock, signer?, telemetry? }
+  wallet,            // the WalletProvider seam
+  initialPayment,    // optional — skip the first fetch if you already have the intent
+  signingTimeoutMs,  // optional
+  onMachineEvent     // optional — read-only analytics observer (event, snapshot)
 })
 ```
 
-The return is `{ snapshot }` plus the named actions from the main SKILL table. There is no `send` or actor on the surface.
+Returns `{ snapshot }` plus the named actions. No `send`, no actor — the machine is driven only through the actions.

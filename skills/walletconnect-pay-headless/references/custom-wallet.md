@@ -1,85 +1,79 @@
 # Custom Wallet — bring your own `WalletProvider`
 
-`@walletconnect/pay-appkit` is the ready-made wallet integration (Reown AppKit for EVM + Solana). Reach for a custom `WalletProvider` only when you are **not** using AppKit — you have your own wallet connector, an in-house wallet, or an existing wagmi/ethers setup you must reuse.
+`@walletconnect/pay-appkit` is the ready-made wallet integration (Reown AppKit for EVM + Solana). Reach for a custom `WalletProvider` only when you are **not** using AppKit — you have your own connector, an in-house wallet, or an existing setup to reuse.
 
-You implement two things: the `WalletProvider` seam (connection + accounts) and a `Signer` built from the raw signing strategies in `@walletconnect/pay-state`. Everything else (transport, clock, the machine) is unchanged.
+You supply one thing the SDK can't: the `WalletProvider` seam. The signer is **not** hand-built — `pay-state` ships `createSigner` to construct it from any `WalletProvider`.
 
-## The `WalletProvider` seam
+## Implement the `WalletProvider` seam
 
-The runtime drives the wallet only through this contract — connect, read accounts, get a provider to sign with, and switch chains. Implement it over your connector:
+The runtime drives the wallet only through this contract — connect, read accounts, hand over a provider to sign with, switch chains, and notify on changes. Implement it over your connector:
 
 ```ts
-import { createPaymentController } from '@walletconnect/pay-state'
+import type { WalletProvider } from '@walletconnect/pay-state'
 
 const wallet: WalletProvider = {
-  // Connection lifecycle (shape per the pay-state WalletProvider contract):
-  connect: async (item, namespace, options) => { /* open your connector, return accounts */ },
+  connect: async (item, namespace, options) => { /* open your connector; resolve with accounts */ },
   disconnect: async (namespace) => { /* drop one namespace, or all */ },
   getAccounts: (namespace) => { /* CAIP-10 accounts currently connected */ },
   getProvider: (namespace) => { /* the RPC provider the signer will use */ },
-  switchNetwork: async (caip2) => { /* switch active chain */ },
+  switchNetwork: async (caip2) => { /* switch the active chain */ },
   subscribe: (listener) => { /* notify on connection/account changes; return unsubscribe */ }
 }
 ```
 
-Check the exact method signatures against your installed version:
+Check the exact method signatures with go-to-definition on `WalletProvider` — this is a beta API and the shape can change between minor releases. The AppKit adapter (`createAppKitWalletProvider` in `@walletconnect/pay-appkit`) is the canonical reference implementation to copy from.
+
+## Build the `Signer` with `createSigner`
+
+`createSigner(wallet, { loadSolanaWeb3 })` (exported from `@walletconnect/pay-state`) builds the entire `Signer` seam from your `WalletProvider` — it picks the EVM or Solana signing strategy per namespace for you. This is the whole signer:
 
 ```ts
-import type { WalletProvider } from '@walletconnect/pay-state'
+import { createSigner } from '@walletconnect/pay-state'
+import { loadSolanaWeb3 } from '@walletconnect/pay-appkit' // lazy @solana/web3.js codec loader
+
+const signer = createSigner(wallet, { loadSolanaWeb3 })
 ```
 
-Read them from your editor's go-to-definition on `WalletProvider` — this is a beta API and the shape can change between minor releases. The AppKit adapter (`createAppKitWalletProvider`) is the canonical reference implementation.
+`loadSolanaWeb3` is only invoked when a Solana option is signed, so the codec stays out of your bundle until needed. If you don't depend on `@walletconnect/pay-appkit` at all, pass your own loader (`() => import('@solana/web3.js')`); EVM-only flows never call it.
 
-## Building a `Signer` from the raw strategies
-
-AppKit hosts get `createAppKitSigner(wallet)` for free. Without AppKit, compose the low-level strategies yourself. They turn a selected option's wallet-RPC actions into signed results:
-
-```ts
-import {
-  EvmSigningStrategy,
-  SolanaSigningStrategy,
-  signOptionActions,
-  type Signer
-} from '@walletconnect/pay-state'
-
-const signer: Signer = {
-  // Dispatch each of a selected option's actions to the right strategy per namespace.
-  signOptionActions: (option, ctx) =>
-    signOptionActions(option, ctx, {
-      eip155: new EvmSigningStrategy(/* evm provider from wallet.getProvider('eip155') */),
-      solana: new SolanaSigningStrategy(/* solana provider + web3 codec */)
-    })
-}
-```
-
-**Solana note:** the EVM path is dependency-free, but Solana signing needs the `@solana/web3.js` codec. `createAppKitSigner` bundles it via the lazy loader `loadSolanaWeb3` from `@walletconnect/pay-appkit`. For a custom Solana signer, load the codec yourself:
-
-```ts
-import { loadSolanaWeb3 } from '@walletconnect/pay-appkit'
-const web3 = await loadSolanaWeb3()
-```
-
-If you only support EVM, you can omit the Solana strategy.
+The resulting seam exposes `signActions(option, range?)` — but you don't call that yourself; the runtime does.
 
 ## Assemble
 
-The rest is identical to the standard paths — only `wallet` and `signer` change:
+Everything else is identical to the standard paths — only `wallet` and `signer` differ:
 
 ```ts
+import { createHttpTransport } from '@walletconnect/pay-core'
+import { browserClock, createPaymentController, createSigner } from '@walletconnect/pay-state'
+
 const controller = createPaymentController({
   paymentId,
   wallet, // your custom WalletProvider
   seams: {
     transport: createHttpTransport({ baseUrl: '/api/wcp' }),
     clock: browserClock,
-    signer  // your custom Signer
+    signer: createSigner(wallet, { loadSolanaWeb3 })
   }
 })
 ```
 
+## Advanced: raw signing strategies
+
+`createSigner` composes these for you; reach for them only if you need to override how a namespace signs. The strategies live in `@walletconnect/pay-state`:
+
+```ts
+import { EvmSigningStrategy, SolanaSigningStrategy } from '@walletconnect/pay-state'
+
+// Each strategy takes the namespace provider plus an options bag, e.g.:
+new SolanaSigningStrategy(solanaProvider, { loadWeb3: loadSolanaWeb3 })
+// EvmSigningStrategy likewise needs its network-switch wiring in the options arg.
+```
+
+Verify the exact constructor options against the installed source before using these directly — `createSigner` is the supported path for almost every custom wallet.
+
 ## When NOT to do this
 
-- **You use AppKit** → use `useAppKitWalletProvider` (React) or `createAppKitWalletList` (JS) + `createAppKitSigner`. Do not reinvent the seam.
-- **You want a custom wallet *list* but AppKit connection** → `createAppKitWalletList` already exposes list/search/pagination/QR; render your own UI over it. You don't need a custom `WalletProvider` for that.
+- **You use AppKit** → use `useAppKitWalletProvider` (React) / `createAppKitWalletList` (JS) + `createAppKitSigner`. Don't reimplement the seam.
+- **You want a custom wallet *list* but AppKit connection** → `createAppKitWalletList` already gives you list/search/pagination/QR; render your own UI over it. You don't need a custom `WalletProvider` for that.
 
-Reach for this reference only when the connection layer itself is not AppKit.
+Reach for this reference only when the connection layer itself isn't AppKit.

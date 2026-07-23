@@ -1,6 +1,8 @@
 # Packages Reference
 
-The runtime is split into layered packages. Each is independently consumable; lower layers never depend on higher ones. Verify exact signatures against your installed version — this is a beta API (v0.1.x).
+> **Canonical source:** the public [packages reference](https://docs.walletconnect.com/payments/psps/headless-sdk/packages-reference) on the WalletConnect docs is kept current with each release. This file is a convenience snapshot for offline work — when it disagrees with the public page or your installed types, trust those. Always confirm signatures with go-to-definition against your installed version; this is a beta API (v0.1.x) and things move between minor releases.
+
+The runtime is split into layered packages. Each is independently consumable; lower layers never depend on higher ones.
 
 | Package | Role | Depends on |
 | --- | --- | --- |

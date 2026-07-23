@@ -1,157 +1,122 @@
 # Server Proxy — keep the Engine API key server-side
 
-The WalletConnect Pay Engine is authenticated with a **secret API key that must never reach the browser**. The Headless SDK enforces this with two entry points in `@walletconnect/pay-core`:
-
-- **Browser:** `@walletconnect/pay-core` → `createHttpTransport()` (no key; calls *your* origin).
-- **Server:** `@walletconnect/pay-core/server` → `createEngineClient({ apiUrl, apiKey })` (holds the key).
-
-The data path is:
+The WalletConnect Pay Engine is authenticated with a **secret API key that must never reach the browser**. So the one piece of backend every integration needs is a thin proxy: the browser calls *your* server, and your server calls the Engine with the key attached.
 
 ```
-Browser → createHttpTransport (Transport seam) → your /api/wcp/* routes → createEngineClient → WC Pay Engine
-                                                   (secret API key attached here, server-side)
+Browser (createHttpTransport, no key) → your proxy → createEngineClient (holds key) → WC Pay Engine
 ```
 
-Your proxy has exactly one job: forward five calls to the Engine with the key attached. The browser transport issues requests to `${baseUrl}/payment/:id/...`, so your routes must mount at those paths.
+pay-core gives you both halves:
 
-> These proxy routes are a **starting point, not production-ready**. Add your own origin allowlist, rate limiting, and auth before shipping. Their only job here is to keep the Engine key off the browser.
+- **Server:** `@walletconnect/pay-core/server` → `createEngineClient({ apiUrl, apiKey })`. Pair it with `'server-only'` so it can never be bundled into client code.
+- **Browser:** `@walletconnect/pay-core` → `createHttpTransport({ baseUrl })`. No key; it just calls your proxy.
 
-## The five routes
+## The contract: five Engine calls
 
-| Route (browser sees) | Method | Engine client method | Engine path |
-| --- | --- | --- | --- |
-| `/api/wcp/payment/[id]` | `GET` | `getPayment(id)` | `/v1/gateway/payment/:id` |
-| `/api/wcp/payment/[id]/options` | `POST` | `getPaymentOptions(id, body)` | `/v1/gateway/payment/:id/options` |
-| `/api/wcp/payment/[id]/fetch` | `POST` | `fetchOptionActions(id, body)` | `/v1/gateway/payment/:id/fetch` |
-| `/api/wcp/payment/[id]/confirm` | `POST` | `confirmPayment(id, body)` | `/v1/gateway/payment/:id/confirm` |
-| `/api/wcp/payment/[id]/status` | `GET` | `getPaymentStatus(id)` | `/v1/gateway/payment/:id/status` |
+`createEngineClient` and the browser `Transport` expose the **same five methods**. Your proxy's only job is to forward each one:
 
-## Next.js — server Engine helper
+| Engine client method | Purpose |
+| --- | --- |
+| `getPayment(id)` | Load the payment intent |
+| `getPaymentOptions(id, body)` | List payable options for the connected accounts |
+| `fetchOptionActions(id, body)` | Build the wallet-RPC actions for a selected option |
+| `confirmPayment(id, body)` | Submit signed results |
+| `getPaymentStatus(id)` | Poll status until final |
 
-`lib/server/engine.ts` — the `'server-only'` import is what guarantees this module can never be bundled into client code.
+**How you expose these is up to you** — Next.js Route Handlers, Express, Hono, Fastify, a Cloudflare Worker, an edge function, one catch-all route or five files. The only requirement: the browser transport must be able to reach them, and you point it there with `baseUrl`.
+
+## How the default transport addresses your proxy
+
+`createHttpTransport({ baseUrl })` issues requests to these paths, so the simplest proxy mirrors them one-to-one:
+
+| Transport request | → Engine client call |
+| --- | --- |
+| `GET  {baseUrl}/payment/:id` | `getPayment(id)` |
+| `POST {baseUrl}/payment/:id/options` | `getPaymentOptions(id, body)` |
+| `POST {baseUrl}/payment/:id/fetch` | `fetchOptionActions(id, body)` |
+| `POST {baseUrl}/payment/:id/confirm` | `confirmPayment(id, body)` |
+| `GET  {baseUrl}/payment/:id/status` | `getPaymentStatus(id)` |
+
+If your framework routes differently, you can supply a custom `fetch` to `createHttpTransport` and map paths yourself — but mirroring is the least work.
+
+## Example — the shared Engine client
+
+Construct the client once, server-side. `'server-only'` is what guarantees this module can't leak into the browser bundle.
 
 ```ts
+// server/engine.ts
 import 'server-only'
 import { createEngineClient } from '@walletconnect/pay-core/server'
 
-// The gateway API key lives here (server env) and NEVER reaches the browser.
-const client = createEngineClient({
+export const engine = createEngineClient({
   apiUrl: process.env.WCP_API_URL ?? 'https://staging.api.pay.walletconnect.org',
-  apiKey: process.env.WCP_WALLET_API_KEY ?? ''
+  apiKey: process.env.WCP_WALLET_API_KEY ?? '' // server env only — never a NEXT_PUBLIC_/VITE_ var
 })
-
-/** Forward a call to the Engine and return an EngineResponse-shaped Response. */
-export async function callEngine(
-  path: string,
-  init: { method: 'GET' | 'POST'; body?: unknown }
-): Promise<Response> {
-  const paymentId = path.split('/')[4] // /v1/gateway/payment/:id[/action]
-  let result
-
-  if (path.endsWith('/options')) {
-    result = await client.getPaymentOptions(paymentId!, init.body as any)
-  } else if (path.endsWith('/status')) {
-    result = await client.getPaymentStatus(paymentId!)
-  } else if (path.endsWith('/confirm')) {
-    result = await client.confirmPayment(paymentId!, init.body as any)
-  } else if (path.endsWith('/fetch')) {
-    result = await client.fetchOptionActions(paymentId!, init.body as any)
-  } else if (path.startsWith('/v1/gateway/payment/')) {
-    result = await client.getPayment(paymentId!)
-  } else {
-    return Response.json({
-      status: 'error',
-      error: { code: 'INVALID_PATH', message: `Unknown path: ${path}` }
-    })
-  }
-
-  return Response.json(result)
-}
 ```
 
-The Engine client methods return the `EngineResponse<T>` envelope (`{ status: 'success', data }` or `{ status: 'error', error }`) — they never throw — so you can pass the result straight back as JSON.
+Each client method returns the Engine's `EngineResponse<T>` envelope (`{ status: 'success', data }` or `{ status: 'error', error }`) and never throws, so a handler can pass the result straight back as JSON.
 
-## Next.js — the five route handlers (App Router)
+## Example — Next.js Route Handlers
 
-Each handler is a thin wrapper. Note `params` is a `Promise` in the App Router.
+One thin handler per Engine method — each just calls the matching client method. No central dispatcher needed.
 
-`app/api/wcp/payment/[id]/route.ts`
 ```ts
-import { callEngine } from '@/lib/server/engine'
-
+// app/api/wcp/payment/[id]/route.ts        → getPayment
+import { engine } from '@/server/engine'
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  return callEngine(`/v1/gateway/payment/${id}`, { method: 'GET' })
+  return Response.json(await engine.getPayment(id))
 }
 ```
 
-`app/api/wcp/payment/[id]/options/route.ts`
 ```ts
-import { callEngine } from '@/lib/server/engine'
-
+// app/api/wcp/payment/[id]/options/route.ts → getPaymentOptions
+import { engine } from '@/server/engine'
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const body = await req.json()
-  return callEngine(`/v1/gateway/payment/${id}/options`, { method: 'POST', body })
+  return Response.json(await engine.getPaymentOptions(id, await req.json()))
 }
 ```
 
-`app/api/wcp/payment/[id]/fetch/route.ts` and `.../confirm/route.ts` are identical to `options` (POST + `body`), with `/fetch` and `/confirm` in the path. `app/api/wcp/payment/[id]/status/route.ts` mirrors the base route (GET, no body) with `/status` in the path.
+`fetch` and `confirm` mirror `options` (POST + body → `fetchOptionActions` / `confirmPayment`); `status` mirrors the base route (GET → `getPaymentStatus`). Then point the browser at it:
 
-## Framework-neutral — any Node server
+```ts
+import { createHttpTransport } from '@walletconnect/pay-core'
+const transport = createHttpTransport({ baseUrl: '/api/wcp' })
+```
 
-The proxy is just a request router. A dependency-free Node `http` server:
+## Example — any Node server (no framework)
+
+The same idea without a framework — read `method` + path segments, call the matching method:
 
 ```js
 import { createServer } from 'node:http'
-import { createEngineClient } from '@walletconnect/pay-core/server'
+import { engine } from './engine.mjs'
 
-const client = createEngineClient({
-  apiUrl: process.env.WCP_API_URL ?? 'https://staging.api.pay.walletconnect.org',
-  apiKey: process.env.WCP_WALLET_API_KEY ?? ''
-})
-
-// Map an incoming proxy request → the matching Engine client call.
-async function dispatch(method, segments, body) {
-  const [resource, id, action] = segments // e.g. ['payment', 'pay_123', 'options']
-  if (resource !== 'payment' || !id) return null
-  if (method === 'GET'  && !action)              return client.getPayment(id)
-  if (method === 'GET'  && action === 'status')  return client.getPaymentStatus(id)
-  if (method === 'POST' && action === 'options') return client.getPaymentOptions(id, body)
-  if (method === 'POST' && action === 'confirm') return client.confirmPayment(id, body)
-  if (method === 'POST' && action === 'fetch')   return client.fetchOptionActions(id, body)
-  return null
+const handlers = {
+  'GET payment/:id':          (id) => engine.getPayment(id),
+  'GET payment/:id/status':   (id) => engine.getPaymentStatus(id),
+  'POST payment/:id/options': (id, body) => engine.getPaymentOptions(id, body),
+  'POST payment/:id/confirm': (id, body) => engine.confirmPayment(id, body),
+  'POST payment/:id/fetch':   (id, body) => engine.fetchOptionActions(id, body)
 }
-
-createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url, 'http://localhost')
-    const segments = url.pathname.replace(/^\/api\/wcp\//, '').split('/').filter(Boolean)
-    const body = req.method === 'POST' ? await readJson(req) : undefined
-    const result = await dispatch(req.method, segments, body)
-    res.setHeader('content-type', 'application/json')
-    if (!result) { res.statusCode = 404; res.end(JSON.stringify({ status: 'error' })); return }
-    res.end(JSON.stringify(result))
-  } catch {
-    // Never leak the stack.
-    res.statusCode = 500
-    res.end(JSON.stringify({ status: 'error', error: { code: 'PROXY_ERROR', message: 'Proxy error' } }))
-  }
-}).listen(Number(process.env.PORT ?? 8787))
+// ...match req.method + path against the keys, call the handler, JSON-respond.
 ```
 
-Any framework works — Express, Hono, Fastify, a Cloudflare Worker, an edge function — as long as it exposes the five paths and forwards to `createEngineClient`.
+## Production notes
+
+- These examples are a **starting point, not production-ready**. Add your own origin allowlist, rate limiting, and auth before shipping.
+- Never leak stack traces to the client on error — return a generic `{ status: 'error' }`.
 
 ## Environment variables
 
 ```bash
-# Reown AppKit project ID — required for wallet connection / QR pairing (PUBLIC / client-side)
-NEXT_PUBLIC_APPKIT_PROJECT_ID=      # Next.js
-# VITE_APPKIT_PROJECT_ID=           # Vite
+# Reown AppKit project ID — PUBLIC (client-side). Required for wallet connection / QR pairing.
+NEXT_PUBLIC_APPKIT_PROJECT_ID=      # Next.js       (or VITE_APPKIT_PROJECT_ID= for Vite)
 
-# WalletConnect Pay Engine — SERVER-SIDE ONLY, never exposed to the browser
+# WalletConnect Pay Engine — SERVER-SIDE ONLY, never exposed to the browser.
 WCP_API_URL=https://staging.api.pay.walletconnect.org
 WCP_WALLET_API_KEY=
 ```
 
-Only the AppKit project ID is public. `WCP_WALLET_API_KEY` must stay server-side — that is the entire reason the proxy exists.
+Only the AppKit project ID is public. `WCP_WALLET_API_KEY` staying server-side is the entire reason the proxy exists.
