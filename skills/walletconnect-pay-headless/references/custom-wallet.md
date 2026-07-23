@@ -1,5 +1,7 @@
 # Custom Wallet — bring your own `WalletProvider`
 
+> This path touches the most version-sensitive surface (the `WalletProvider` / `Signer` seam signatures). Always confirm the exact shapes with go-to-definition against your installed `@walletconnect/pay-state`, and check the [packages reference](https://docs.walletconnect.com/payments/psps/headless-sdk/packages-reference) — trust those over the sketches here.
+
 `@walletconnect/pay-appkit` is the ready-made wallet integration (Reown AppKit for EVM + Solana). Reach for a custom `WalletProvider` only when you are **not** using AppKit — you have your own connector, an in-house wallet, or an existing setup to reuse.
 
 You supply one thing the SDK can't: the `WalletProvider` seam. The signer is **not** hand-built — `pay-state` ships `createSigner` to construct it from any `WalletProvider`.

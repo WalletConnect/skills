@@ -1,5 +1,7 @@
 # Server Proxy — keep the Engine API key server-side
 
+> The five-method contract below is stable; the example code is a durable *shape*, not a spec. For the complete, current walkthrough see the [implementation docs](https://docs.walletconnect.com/payments/psps/headless-sdk/implementation).
+
 The WalletConnect Pay Engine is authenticated with a **secret API key that must never reach the browser**. So the one piece of backend every integration needs is a thin proxy: the browser calls *your* server, and your server calls the Engine with the key attached.
 
 ```

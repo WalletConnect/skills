@@ -50,6 +50,16 @@ Layered; lower packages never import higher ones, so you take only what you need
 | `@walletconnect/pay-react` | Thin React binding — `usePaymentSession` returns the snapshot + named actions. |
 | `@walletconnect/pay-appkit` | The Reown AppKit adapter — the `WalletProvider` seam, a zero-config `Signer`, and a wallet picker. `/react` subpath ships the provider + hooks. |
 
+## Canonical docs — the source of truth
+
+This skill intentionally carries only the **stable contract** (below) and defers everything version-sensitive — exhaustive API signatures, full walkthrough code, the current package surface — to the docs, which are kept current with each release. When in doubt, or when something here disagrees with your installed types, **trust the docs and the reference example, not this skill**:
+
+- Overview — https://docs.walletconnect.com/payments/psps/headless-sdk/overview
+- How it works (seams, lifecycle) — https://docs.walletconnect.com/payments/psps/headless-sdk/how-it-works
+- Implementation (full walkthrough) — https://docs.walletconnect.com/payments/psps/headless-sdk/implementation
+- Packages reference (full API) — https://docs.walletconnect.com/payments/psps/headless-sdk/packages-reference
+- Reference example — https://github.com/WalletConnect/walletconnect-pay-examples/tree/main/gateway/headless-checkout
+
 ## Choose your path
 
 | Path | When | Reference |
@@ -58,7 +68,7 @@ Layered; lower packages never import higher ones, so you take only what you need
 | **Vanilla JavaScript** | Framework-neutral → `createPaymentController` + subscribe + render | [vanilla-js.md](references/vanilla-js.md) |
 | **Custom wallet** | Not using AppKit → implement `WalletProvider`, build the signer with `createSigner` | [custom-wallet.md](references/custom-wallet.md) |
 
-Every path needs the server proxy → [server-proxy.md](references/server-proxy.md).
+Every path needs the server proxy → [server-proxy.md](references/server-proxy.md). Each reference gives the durable *shape*; for the complete, current code, follow it to the docs page above.
 
 ## Prerequisites
 
