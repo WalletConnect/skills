@@ -55,6 +55,7 @@ ls ~/.claude/commands/
 |-------|-------------|-------|
 | `agent-creator` | Guide for creating custom Claude Code subagents with custom prompts and tools | Use when creating/updating agents |
 | `aws-limits` | Reviews infrastructure code for AWS service quota violations | Use when reviewing Terraform/CloudFormation/CDK/Pulumi |
+| `auto-review` | Runs the WalletConnect `claude/auto-review` CI review locally against branch changes before opening a PR | `auto-review` or "review my changes before PR" |
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
@@ -92,6 +93,15 @@ Reviews infrastructure code for AWS service quota violations before they cause p
 - Flags violations with severity levels
 - Links to AWS documentation
 - Suggests mitigations
+
+#### auto-review
+Reproduces the WalletConnect `claude/auto-review` GitHub Action locally, against the current branch's changes, so issues are caught before the PR is opened. Reads the local `git diff` instead of the GitHub PR API and prints findings to the terminal.
+
+**Features:**
+- Same review scope and five automated checks as CI (PR size, external-domain URLs, cache-control, GitHub Actions security, WalletConnect Pay architecture)
+- Heuristic-gated subagents: breaking-changes, license-compliance, data-classification
+- Read-only, issues-only, severity-ranked output (Critical > High > Medium > Low)
+- `✅ No issues found` when clean
 
 #### code-review
 Reviews code changes using parallel subagents to analyze bugs/logic, security/auth, and patterns/structure. Automatically detects AWS infrastructure files and runs service quota checks.
@@ -623,6 +633,14 @@ skills/                      # Repository root
 │   ├── aws-limits/
 │   │   ├── SKILL.md
 │   │   └── REFERENCE.md
+│   ├── auto-review/
+│   │   ├── SKILL.md
+│   │   ├── HEURISTICS.md
+│   │   ├── REVIEW_PROMPT.md
+│   │   └── agents/
+│   │       ├── review-breaking-changes.md
+│   │       ├── review-data-classification.md
+│   │       └── review-license-compliance.md
 │   ├── code-review/
 │   │   └── SKILL.md
 │   ├── code-simplifier/
