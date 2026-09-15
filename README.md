@@ -55,6 +55,7 @@ ls ~/.claude/commands/
 |-------|-------------|-------|
 | `agent-creator` | Guide for creating custom Claude Code subagents with custom prompts and tools | Use when creating/updating agents |
 | `aws-limits` | Reviews infrastructure code for AWS service quota violations | Use when reviewing Terraform/CloudFormation/CDK/Pulumi |
+| `clickhouse-schema-design` | Design, audit, and optimize ClickHouse tables — ORDER BY, types/codecs, partitioning, engines, materialized views, ClickPipes/Kinesis landing tables, query diagnosis | Use when writing or reviewing ClickHouse DDL, MVs, ClickPipes, or debugging slow queries |
 | `code-review` | Review code changes for bugs, security issues, and structural problems | `/code-review [guidance]` |
 | `code-simplifier` | Simplify and refine code for clarity while preserving functionality | `/code-simplifier` |
 | `command-creator` | Guide for creating custom slash commands with arguments and bash execution | Use when creating/updating commands |
@@ -92,6 +93,28 @@ Reviews infrastructure code for AWS service quota violations before they cause p
 - Flags violations with severity levels
 - Links to AWS documentation
 - Suggests mitigations
+
+#### clickhouse-schema-design
+Opinionated guidance for designing and reviewing ClickHouse tables. Routes into one of five modes based on what you bring: Design (describe your data), Audit (paste a `CREATE TABLE`), Generate (runnable DDL from templates), Diagnose (slow query or operational symptom), or Ingest (ClickPipes / Kinesis / Kafka landing tables).
+
+**Features:**
+- `ORDER BY`, partitioning, engine, type and codec selection with the rationale and what each choice makes slow
+- Audit mode reports severity-ranked findings (blocking / costly / minor) with a migration note: rebuild vs `ALTER`
+- Materialized views: incremental vs refreshable, aggregate states, safe backfill without `POPULATE`
+- Streaming ingestion: landing-table pattern, ClickPipes column ownership, at-least-once dedup, replay, IAM/cross-account Kinesis, error tables, monitoring queries
+- Diagnose mode driven by `EXPLAIN indexes = 1`, `system.query_log`, and `system.parts`
+- Reference docs per topic plus SQL templates (event table, transaction table, MV + backfill, landing table)
+
+**Example:**
+```bash
+# Paste a CREATE TABLE and ask for a review
+"Audit this table: CREATE TABLE events (...) ENGINE = ReplacingMergeTree ORDER BY event_id ..."
+# → Verdict, findings table, corrected DDL, rebuild-or-ALTER note
+
+# Or describe the data
+"I need to store Kinesis payment events in ClickHouse, queried per merchant by day"
+# → Landing table + MV + typed table DDL with rationale
+```
 
 #### code-review
 Reviews code changes using parallel subagents to analyze bugs/logic, security/auth, and patterns/structure. Automatically detects AWS infrastructure files and runs service quota checks.
