@@ -172,7 +172,7 @@ Quick reference. Each is expanded in the reference files.
 6. **Avoid `Nullable`.** It adds a second column and disables some optimizations. Use a sentinel or default unless null genuinely differs from zero/empty.
 7. **`LowCardinality(String)` below roughly 10,000 distinct values.** Above that it starts to hurt.
 8. **Use the narrowest type that fits, then add a codec.** `Delta, ZSTD` for timestamps and monotonic IDs; `ZSTD` for most strings; `T64` for sparse integers.
-9. **Do not treat `ALTER UPDATE` / `ALTER DELETE` as routine.** Mutations rewrite whole parts. Model corrections as appends into a `ReplacingMergeTree`. Lightweight `UPDATE` (patch parts) and lightweight `DELETE` are cheaper for occasional small corrections, but neither fires materialized views, so derived tables drift. See `references/query-optimization.md`.
+9. **Do not treat `ALTER UPDATE` / `ALTER DELETE` as routine.** Mutations rewrite whole parts. Model corrections as appends.
 10. **Never schedule `OPTIMIZE TABLE ... FINAL`.** It forces full merges and will eventually take longer than the interval between runs.
 11. **Insert in large batches** (10k–100k+ rows), or enable `async_insert`. Many small inserts are the leading cause of too-many-parts.
 12. **A materialized view reads the inserted block, not the table.** It cannot see history, cannot join against the full source, and does not fire on merges or mutations.
