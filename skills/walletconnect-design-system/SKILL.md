@@ -75,9 +75,13 @@ from here — flex direction, ordering, what contains what.
 `get_screenshot` is available if you need to see what you are building. Look at
 it for layout and hierarchy only. **Never read a colour or a size off it.**
 
-### Do not use `get_design_context`
+### Why `get_design_context` is not in `allowed-tools`
 
-Asked to implement a frame it returns this:
+Figma's MCP server offers a third tool alongside the two above,
+`get_design_context`, which looks purpose-built for this job: hand it a frame and
+it returns ready-to-paste React and CSS. It is deliberately left out.
+
+Asked to implement a frame, what it returns looks like this:
 
 ```
 font-['Inter:Light']  text-[#2b2b2b]  text-[46px]  leading-[normal]
@@ -85,8 +89,11 @@ font-['Inter:Light']  text-[#2b2b2b]  text-[46px]  leading-[normal]
 
 Every value hardcoded, every one an arbitrary value, and no indication which
 library anything came from. It also instructs you to "preserve exact visual
-design", which with no token to resolve against means inventing one. That is the
-drift this design system exists to prevent, arriving through the front door.
+design" — which, with no token to resolve against, means inventing one. That is
+the drift this design system exists to prevent, arriving through the front door.
+
+So the frame is read a different way: **structure from metadata, styling from
+variable names.** Never from rendered values.
 
 ## 4. Read the styling as names
 
