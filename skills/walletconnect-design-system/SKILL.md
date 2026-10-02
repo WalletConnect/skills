@@ -110,9 +110,13 @@ Returns the variables bound on the frame **as names**:
 **Use the keys. Ignore the values entirely** — they are the resolved output, and
 copying one is how a hex ends up in the source.
 
-**Where a variable carries a web code syntax, that string IS the class.** Prefer
-it over any translation: it came from the same export that produced the CSS, so
-it cannot disagree with the build the way a rule of thumb can.
+You get a name and a resolved value, and nothing else. Figma can carry a per
+platform **Code Syntax** on a variable — the actual Tailwind class, written back
+into the design file — which would be better than deriving one, because it comes
+from the same export that produced the CSS. It is not reachable: the REST
+endpoint that exposes it is Enterprise-only and refuses on this organisation's
+plan, and `get_variable_defs` does not return it. So step 6 derives the class
+from the name, and the type system catches a bad derivation.
 
 A name here is not proof it is one of ours. Frames carry variables from other
 collections. Step 6 is where that gets caught.
