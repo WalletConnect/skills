@@ -70,6 +70,7 @@ ls ~/.claude/commands/
 | `security-audit-owasp-top-10` | Comprehensive security audit against OWASP Top 10 2025 framework | `/security-audit-owasp-top-10` |
 | `skill-writing` | Designs and writes high-quality Agent Skills with proper structure and metadata | Use when creating/improving Skills |
 | `terraform-plan-review` | Analyze Terraform plan output — resource counts, alignment check, risk assessment, recommendations | `/terraform-plan-review [plan-file]` |
+| `walletconnect-design-system` | Build a React view from a Figma frame using `@walletconnect/ui` and `@walletconnect/ui-tokens` — reads structure and token names from Figma, never rendered values | `/walletconnect-design-system <figma-url>` |
 | `walletconnect-pay` | Guide wallet developers through WalletConnect Pay SDK integration (Kotlin, Swift, React Native, Flutter) | `/walletconnect-pay` |
 | `walletconnect-pay-headless` | Build a fully branded, self-hosted crypto checkout on the WalletConnect Pay Headless SDK (`@walletconnect/pay-*`) in React/Next.js or vanilla JS | `/walletconnect-pay-headless` |
 | `worktree` | Create and configure new git worktree with conventional commit branch naming | `/worktree <name>` |
@@ -363,6 +364,19 @@ Creates a new git worktree in a sibling directory with proper branch naming foll
 # Prompts for commit type → Creates feat/alerts branch
 # Creates worktree at ../repo-name-feat-alerts
 ```
+
+#### walletconnect-design-system
+Implements a Figma frame as React, composed only from published design-system components and tokens. Reads the frame's **structure** from metadata and its **styling from variable names** — never from rendered values, because a resolved hex copied into source is the drift the design system exists to prevent.
+
+**Holds rules, not inventory.** Which components and tokens exist is read from the installed packages at the moment it is needed, so the skill does not go stale when design publishes something new.
+
+**Features:**
+- Install preflight for the two silent failures: a missing `read:packages` token (a bare `401`), and the missing `@source` line that renders every component unstyled with no error
+- Figma instance → exported component, and Figma variant values → props, confirmed against the prop type's union
+- Figma variable → utility class, preferring the web code syntax design writes into the variable over any translation rule
+- A coverage report of what resolved and what did not — on a small component set this is the main output, and the list product teams should file back
+- Writes every `className` through `cx`, so an off-system class is a compile error in the editor
+- `references/setup.md` covers install, the three stylesheet choices, and theming
 
 #### walletconnect-pay
 Guides wallet developers through integrating WalletConnect Pay SDK so users can pay at any WC Pay-compatible POS terminal using USDC. Covers all three integration paths (WalletKit recommended, Standalone SDK, API-First) across all supported mobile frameworks.
