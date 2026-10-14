@@ -56,14 +56,31 @@ them.
 @import "@walletconnect/ui-tokens/sheet.css";
 ```
 
-Every utility design's vocabulary can produce, precompiled. Around 862 KB raw,
-42 KB brotli for the base sheet. Interactive states are absent deliberately —
-they belong to the components, which are precompiled and own them.
+Every utility design's vocabulary can produce, precompiled. It is large and grows
+with the vocabulary, so check `node_modules/@walletconnect/ui-tokens/dist/sheet.css`
+before choosing it. Interactive states are absent deliberately — they belong to
+the components, which are precompiled and own them.
 
 ## 3. Peer dependencies
 
 `react` and `react-dom` 18+, `@walletconnect/ui-tokens` at the matching version,
-and `@phosphor-icons/react` for any component that renders a glyph.
+and `@phosphor-icons/react`. Phosphor is required even if the app never renders
+`DsIcon`: `DsButton` and `DsIconButton` import its spinner for the pending state.
+
+## 4. Check classes in CI
+
+`cx` covers classes written through it. For everything else — a raw `className`
+string, a class built by interpolation — `@walletconnect/ui-tokens` ships the
+check the design system runs on itself:
+
+```bash
+npx ds-check <srcDir> <compiledCssDir>    # e.g. src dist
+```
+
+It fails on any class missing from the compiled CSS, on Tailwind's own scales by
+name (`p-4`, `text-sm`, `z-10`), and on arbitrary values. A string whose first
+word is capitalised is read as copy, not classes. It fails when it finds no
+source files, so a wrong `srcDir` cannot pass.
 
 ## Theming
 

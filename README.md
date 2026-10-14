@@ -373,10 +373,11 @@ Implements a Figma frame as React, composed only from published design-system co
 **Features:**
 - Install preflight for the two silent failures: a missing `read:packages` token (a bare `401`), and the missing `@source` line that renders every component unstyled with no error
 - Figma instance → exported component, and Figma variant values → props, confirmed against the prop type's union
-- Figma variable → utility class, preferring the web code syntax design writes into the variable over any translation rule
+- Figma variable → utility class, derived from the variable's name, with `cx` refusing a bad derivation at compile time
+- Reads each component's page on the [design guidelines site](https://walletconnect-design-system-guidelines.vercel.app/) for how design says to use and compose it
 - A coverage report of what resolved and what did not — on a small component set this is the main output, and the list product teams should file back
-- Writes every `className` through `cx`, so an off-system class is a compile error in the editor
-- `references/setup.md` covers install, the three stylesheet choices, and theming
+- Writes every `className` through `cx`, so an off-system class is a compile error in the editor, and runs `ds-check` for the classes `cx` cannot see
+- `references/setup.md` covers install, the three stylesheet choices, theming, and `ds-check` in CI
 
 #### walletconnect-pay
 Guides wallet developers through integrating WalletConnect Pay SDK so users can pay at any WC Pay-compatible POS terminal using USDC. Covers all three integration paths (WalletKit recommended, Standalone SDK, API-First) across all supported mobile frameworks.
