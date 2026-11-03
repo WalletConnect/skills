@@ -1,6 +1,6 @@
 ---
 name: walletconnect-design-system
-description: Build a React view from a Figma frame using the WalletConnect design system — @walletconnect/ui components and @walletconnect/ui-tokens. Use when implementing a screen, panel or component a designer has produced in Figma, or when setting the design system up in an app. Takes a Figma frame URL.
+description: Build a React view from a Figma frame using the WalletConnect design system — @walletconnect/ui components and @walletconnect/ui-tokens. Use when implementing a screen, panel or component a designer has produced in Figma, or when setting the design system up in an app. Runs in Claude Code inside the product repository. Takes a Figma frame URL.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, mcp__claude_ai_Figma__create_session, mcp__claude_ai_Figma__get_metadata, mcp__claude_ai_Figma__get_variable_defs, mcp__claude_ai_Figma__get_screenshot
 ---
 
@@ -12,6 +12,17 @@ components and `@walletconnect/ui-tokens` utilities.
 Design owns every visual value. You own structure: layout, composition, which
 published component fills each slot. **You never choose a colour, a size or a
 radius.**
+
+## Where this runs
+
+In the product repository, with Claude Code: the terminal, the Code tab of the
+Claude desktop app, or an IDE. Every step after reading Figma reads the
+installed packages or writes the view into that repository.
+
+In a chat with no repository — claude.ai, Claude Tag — say that this needs
+Claude Code open in the product repository, and stop. Do not produce a coverage
+report or code from Figma alone: without the installed packages, neither can be
+resolved.
 
 ## This skill holds rules, not inventory
 
