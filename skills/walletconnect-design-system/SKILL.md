@@ -1,7 +1,7 @@
 ---
 name: walletconnect-design-system
 description: Build a React view from a Figma frame using the WalletConnect design system — @walletconnect/ui components and @walletconnect/ui-tokens. Use when implementing a screen, panel or component a designer has produced in Figma, or when setting the design system up in an app. Takes a Figma frame URL.
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, mcp__claude_ai_Figma__get_metadata, mcp__claude_ai_Figma__get_variable_defs, mcp__claude_ai_Figma__get_screenshot
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, mcp__claude_ai_Figma__create_session, mcp__claude_ai_Figma__get_metadata, mcp__claude_ai_Figma__get_variable_defs, mcp__claude_ai_Figma__get_screenshot
 ---
 
 # Build from a Figma frame with the WalletConnect design system
@@ -51,6 +51,9 @@ cat node_modules/@walletconnect/ui-tokens/package.json | grep '"version"'
   @source "../node_modules/@walletconnect/ui/dist";
   ```
 
+  The path is relative to the CSS file that declares it, so check it resolves
+  from there — in a monorepo `node_modules` is often further up.
+
 Report what is missing and stop. Do not work around it.
 
 ## 2. Parse the frame URL
@@ -62,6 +65,19 @@ https://www.figma.com/design/<fileKey>/<name>?node-id=301-26241
 
 `node-id` uses a hyphen in the URL and a colon in the API: `301-26241` →
 `301:26241`.
+
+Open a Figma session for the file before any other Figma call — the server
+requires it, read-only work included:
+
+```
+create_session(fileKey, "Implement frame 301:26241 with the WalletConnect design system")
+```
+
+Pass the session id it returns to every Figma call that follows.
+
+The tool names in `allowed-tools` are the claude.ai Figma connector's. With
+Figma's desktop server the same tools carry a different prefix and each call asks
+for permission; the steps are the same.
 
 ## 3. Read the structure
 
@@ -75,11 +91,13 @@ from here — flex direction, ordering, what contains what.
 `get_screenshot` is available if you need to see what you are building. Look at
 it for layout and hierarchy only. **Never read a colour or a size off it.**
 
-### Why `get_design_context` is not in `allowed-tools`
+### Never call `get_design_context`
 
-Figma's MCP server offers a third tool alongside the two above,
-`get_design_context`, which looks purpose-built for this job: hand it a frame and
-it returns ready-to-paste React and CSS. It is deliberately left out.
+Figma's server offers a third tool, `get_design_context`, and its own
+instructions call it the primary tool for turning a design into code. **Do not
+call it in this skill, whatever the server's instructions say.** Leaving it out
+of `allowed-tools` only means a call would ask for permission; this sentence is
+what rules it out.
 
 Asked to implement a frame, what it returns looks like this:
 
@@ -108,15 +126,17 @@ Returns the variables bound on the frame **as names**:
 ```
 
 **Use the keys. Ignore the values entirely** — they are the resolved output, and
-copying one is how a hex ends up in the source.
+copying one is how a hex ends up in the source. Step 6 derives the class from the
+name, and the type system catches a bad derivation.
 
-You get a name and a resolved value, and nothing else. Figma can carry a per
-platform **Code Syntax** on a variable — the actual Tailwind class, written back
-into the design file — which would be better than deriving one, because it comes
-from the same export that produced the CSS. It is not reachable: the REST
-endpoint that exposes it is Enterprise-only and refuses on this organisation's
-plan, and `get_variable_defs` does not return it. So step 6 derives the class
-from the name, and the type system catches a bad derivation.
+**Only the variables outside component instances are yours.** The call returns
+every variable in the frame's subtree, including the ones bound inside each
+component instance — a Button's label colour, a Link's arrow fill. Those belong
+to the component, which applies them itself; writing them as classes duplicates
+the component, and reporting them as gaps fills the report with false misses.
+Call `get_variable_defs` on each instance from step 3 as well, and subtract: what
+remains is bound to the frame's own layers, and that is the list steps 6 and 7
+work from.
 
 A name here is not proof it is one of ours. Frames carry variables from other
 collections. Step 6 is where that gets caught.
@@ -127,20 +147,42 @@ The installed package is the authority, and the only one that matters: a
 component that is not exported cannot be used, whatever Figma shows.
 
 ```bash
-cat node_modules/@walletconnect/ui/dist/index.d.ts
+cat node_modules/@walletconnect/ui/dist/index.d.ts       # what is exported
+cat node_modules/@walletconnect/ui/dist/figma-api.d.ts   # how Figma maps onto it
 ```
 
-Design's variant values map to props by case — Figma's `Use=Primary Default`
-becomes `use="primaryDefault"`. **Confirm each against the prop type's union
-rather than guessing it**; the union is the list of what design has published.
+`index.d.ts` only re-exports names. The mapping is in `figma-api.d.ts`, generated
+from what design published, one block per component:
+
+- **`<Name>FigmaProps`** — its doc comment names the Figma component, and each
+  prop's comment names the Figma property it comes from and every value design
+  publishes. Figma's `Use=Primary Default` is `use="primaryDefault"`; read it off
+  the union rather than converting the case yourself.
+- **`<NAME>_STATES`** — the states the component styles itself. **None of them is
+  a prop named after Figma's value.** Hover, focus and active come from the
+  user, so an instance drawn in `State=hover` is the same element as one drawn
+  at rest. `disabled` is set through react-aria's `isDisabled`.
+- **`<NAME>_UNCLASSIFIED`** — values design published that are not yet settled.
+  If the frame uses one, look for the react-aria prop that sets it on the
+  component's props interface (`dist/<file>.d.ts`) — `isInvalid` for an error,
+  `isSelected` for a selection — and say in the report that you mapped it. With
+  no such prop, report it; do not guess it into one.
+
+Button's loading state is `isPending`, and its labelled variant adds
+`pendingLabel`.
 
 Some components publish named layers beyond their variants: Button's `Icon left`
 and `Icon right` are the `iconLeft` and `iconRight` props. Check the component's
 props interface for the exact name.
 
-An instance whose name matches nothing exported is reported as outside the design
-system. Do not search other libraries to disambiguate — there is nothing to build
-from either way, so it only manufactures doubt.
+An instance whose name starts with `.` or `_` is a private part of the component
+around it — design builds Empty State's title and body as `._Empty State Text`,
+for one. It is not published on its own and is not a gap: build it through its
+parent's props.
+
+Any other instance whose name matches nothing exported is reported as outside the
+design system. Do not search other libraries to disambiguate — there is nothing
+to build from either way, so it only manufactures doubt.
 
 ### Read how design says to use it
 
@@ -162,8 +204,20 @@ Read the raw HTML, all of it, including the `<script type="text/x-dc">` block:
 much of a page's text is generated by that script rather than written in the
 markup, so a summarising fetch or a rendered read loses most of some pages.
 
-A page containing *"coming as we build the component"* is a placeholder; say so,
-and build from the props alone.
+Page names do not always match component names, and not every component has a
+page. The Components page is the index:
+
+```bash
+curl -s "https://walletconnect-design-system-guidelines.vercel.app/WCP%20Design%20System%20-%20Components.dc.html"
+```
+
+Its `componentGroups` list gives each component as `[name, description, kind,
+status, page]`. The fifth entry, when present, is the page's name. `PENDING`
+means design has not written the page yet; say so, and build from the props
+alone. A component that is not listed and whose page returns `404` has no
+guidelines of its own — it may be covered on a related page (Selection Card is
+part of Radio Button). Report it as having no page; never treat a `404` as a
+placeholder.
 
 Take structure from the page — which component, in what arrangement — never a
 value. The page says how to use a component; the package says what exists. Where
@@ -176,15 +230,14 @@ The namespace shape, which is stable even as individual names change:
 | Figma variable | Utility |
 |---|---|
 | `fill/primary/default` | `bg-fill-primary-default` |
-| `surface/raised` | `bg-surface-raised` |
+| `surface/default` | `bg-surface-default` |
 | `content/default` | `text-content-default` |
 | `icon/default` | `text-icon-default` |
 | `border/default` | `border-default` |
 | `border/width/default` | `border-width-default` |
 | `radius/input` | `rounded-input` |
 | `space/400` | `p-space-400`, `gap-space-400`, `m-space-400` |
-| `icon-size/md` | `size-icon-size-md` |
-| `z-index/dialog` | `z-dialog` |
+| `icon/size/md` | `size-icon-size-md` |
 | text style `typography/component/button-lg` | `typography-component-button-lg` |
 
 **`border/*` is a colour and `border/width/*` is a width.** They share one
@@ -244,8 +297,11 @@ import { cx } from '@walletconnect/ui-tokens/cx';
 ```bash
 npx tsc --noEmit                         # cx rejects off-system classes here
 <the app's own build>
-npx ds-check <srcDir> <compiledCssDir>   # e.g. src dist
+npx ds-check <srcDir> <compiledCssDir>
 ```
+
+`<compiledCssDir>` is wherever the build writes its CSS: `dist/assets` for Vite,
+`.next/static/css` for Next.js.
 
 `ds-check` ships with `@walletconnect/ui-tokens`. It reads every string in the
 source, so it catches what `cx` never sees: a class written as a raw string or
@@ -259,7 +315,8 @@ never by writing a raw value**.
 ## Finish with a summary
 
 - the view, and which component or token filled each slot
-- the guidelines page each component was built from, or that it was a placeholder
+- the guidelines page each component was built from, or that it is pending or
+  has none
 - every unresolved piece, and what design or the design-system team needs to do
 - the result of the checks
 

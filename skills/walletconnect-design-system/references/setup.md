@@ -9,12 +9,17 @@ In the project's `.npmrc`:
 
 ```
 @walletconnect:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-`GITHUB_TOKEN` is a personal access token with `read:packages`, **per developer
-and per CI runner**. Without it, install fails with a bare `401` that never
-mentions authentication — which is why this is the first thing to check.
+`NODE_AUTH_TOKEN` is a personal access token with `read:packages`, **per
+developer and per CI runner**. Without it, install fails with a bare `401` that
+never mentions authentication — which is why this is the first thing to check.
+
+In GitHub Actions, the built-in `GITHUB_TOKEN` reads packages only when the
+`@walletconnect` package grants the consuming repository access. Without that
+grant it is the same bare `401`, so either ask for the grant or pass a personal
+token as `NODE_AUTH_TOKEN`.
 
 ```bash
 pnpm add @walletconnect/ui @walletconnect/ui-tokens
@@ -24,9 +29,10 @@ pnpm add @walletconnect/ui @walletconnect/ui-tokens
 
 Three ways, depending on what the app is.
 
-### The app runs Tailwind v4 and writes its own layout
+### The app runs Tailwind 4.3+ and writes its own layout
 
-The common case.
+The common case. `@walletconnect/ui-tokens` declares `tailwindcss` 4.3 as its
+peer: the list of Tailwind classes `ds-check` refuses is built against it.
 
 ```css
 @import "tailwindcss";
@@ -39,6 +45,9 @@ The common case.
 without it the components' own classes are never generated and every DS component
 renders unstyled — with no error anywhere. It is the single most common setup
 failure and the hardest to diagnose, because nothing is broken except the output.
+
+The path is relative to the CSS file that declares it. In a monorepo, where
+`node_modules` sits further up, count the levels from that file.
 
 ### Components only, no layout of your own
 
@@ -74,8 +83,11 @@ string, a class built by interpolation — `@walletconnect/ui-tokens` ships the
 check the design system runs on itself:
 
 ```bash
-npx ds-check <srcDir> <compiledCssDir>    # e.g. src dist
+npx ds-check <srcDir> <compiledCssDir>
 ```
+
+`<compiledCssDir>` is wherever the build writes its CSS: `dist/assets` for Vite,
+`.next/static/css` for Next.js.
 
 It fails on any class missing from the compiled CSS, on Tailwind's own scales by
 name (`p-4`, `text-sm`, `z-10`), and on arbitrary values. A string whose first

@@ -379,6 +379,8 @@ Implements a Figma frame as React, composed only from published design-system co
 - Writes every `className` through `cx`, so an off-system class is a compile error in the editor, and runs `ds-check` for the classes `cx` cannot see
 - `references/setup.md` covers install, the three stylesheet choices, theming, and `ds-check` in CI
 
+**Checked against the packages.** The design-system repo's CI (`pnpm verify:skill`) reads this skill from `main` and fails when a path, class, Figma variable, prop, guidelines page or peer it names stops existing in the build. A change on either side that breaks the other shows up there.
+
 #### walletconnect-pay
 Guides wallet developers through integrating WalletConnect Pay SDK so users can pay at any WC Pay-compatible POS terminal using USDC. Covers all three integration paths (WalletKit recommended, Standalone SDK, API-First) across all supported mobile frameworks.
 
